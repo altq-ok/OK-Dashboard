@@ -442,18 +442,86 @@ export default function DynamicDashboard() {
 それぞれが独立して作れるので、モノレポでの開発にも非常に向いています。
 「自分で場所を選んで開く」という操作感は、ユーザーに「自分専用の道具」を使っている実感を与えられるので、ぜひ挑戦してみてください！
 
-**Considering Panel Count**
+結論から言うと、**「自由自在」**です。
 
-I've been examining the capabilities of `react-resizable-panels`. My initial thoughts focused on confirming its flexibility regarding panel count. I've confirmed it can indeed accommodate scenarios with three or even a single panel, diverging from the initial two-panel assumption. I am now looking at the under-the-hood flexibility features. I am also investigating whether Tailwind CSS v4 has a role.
+`react-resizable-panels` は非常に柔軟で、3つ、4つと増やすことも、上下左右を組み合わせる（入れ子にする）ことも、あるいは特定のパネルを消して1つにすることも簡単にできます。
 
+具体的なパターンを3つ紹介します。
 
-**Expanding Layout Options**
+---
 
-I've been exploring how to implement various panel arrangements. It's clear `react-resizable-panels` isn't limited by the original two-panel assumption. Adding `<Panel>` and `<PanelResizeHandle>` components allows for any number of panels. I'm focusing on demonstrating single-panel scenarios through conditional rendering and nesting `PanelGroup` components for complex horizontal and vertical splits, including three-panel layouts. I'm getting pretty good at this.
+### 1. 3つ以上のパネルを並べる
+単に `<Panel>` と `<PanelResizeHandle>` を交互に増やすだけです。
 
+```tsx
+<PanelGroup direction="horizontal">
+  <Panel>左：メニュー</Panel>
+  <PanelResizeHandle />
+  
+  <Panel>中：カレンダー</Panel>
+  <PanelResizeHandle />
+  
+  <Panel>右：詳細情報</Panel>
+</PanelGroup>
+```
 
-**Developing Complex Nesting**
+### 2. 「1つにする（消す）」ことも可能
+Reactのステート（`useState`）を使って、パネルを表示・非表示にできます。
+例えば「サイドバーを閉じるボタン」を作りたい場合はこうなります。
 
-I'm now integrating a vertical `PanelGroup` within a horizontal `Panel`, aiming for greater layout flexibility. I'm exploring the `onCollapse` prop and React state to hide panels, enhancing responsiveness. My focus is on ensuring Tailwind v4 compatibility throughout this deep nesting and complex collapsible behavior. The tone's staying encouraging, of course.
+```tsx
+const [showSidebar, setShowSidebar] = useState(true);
 
+return (
+  <PanelGroup direction="horizontal">
+    {showSidebar && (
+      <>
+        <Panel defaultSize={20}>サイドバー</Panel>
+        <PanelResizeHandle />
+      </>
+    )}
+    <Panel>メインコンテンツ（ここが広がります）</Panel>
+  </PanelGroup>
+);
+```
+※ `showSidebar` が `false` になれば、自動的にメインパネルが画面いっぱいに広がります。
 
+### 3. 上下と左右を組み合わせる（入れ子）
+これがダッシュボードでは一番強力です。「全体を左右に分けて、右側だけをさらに上下に分ける」といった構成ができます。
+
+```tsx
+<PanelGroup direction="horizontal">
+  {/* 左：ナビゲーション */}
+  <Panel defaultSize={20}>サイドナビ</Panel>
+  
+  <PanelResizeHandle />
+
+  {/* 右：メインエリア（ここを上下に分ける） */}
+  <Panel>
+    <PanelGroup direction="vertical">
+      <Panel defaultSize={70}>上の画面：カレンダー</Panel>
+      
+      <PanelResizeHandle />
+      
+      <Panel defaultSize={30}>下の画面：ログや通知</Panel>
+    </PanelGroup>
+  </Panel>
+</PanelGroup>
+```
+
+---
+
+### ベストプラクティス：最初は「2つ」から始めよう
+
+いきなり3分割や入れ子にするとコードが複雑になるので、初心者のうちは以下のステップがおすすめです。
+
+1.  **まずは「左右2分割」で作る**（左：メイン、右：サブ）。
+2.  **慣れてきたら「表示・非表示」を付ける**（ボタンで右パネルを消せるようにする）。
+3.  **機能が増えたら「3分割」や「上下分割」を検討する。**
+
+### チームへのアドバイス
+このライブラリのいいところは、**「後からパネルを増やしたり減らしたりするのが、HTMLをいじる感覚で非常に簡単」**という点です。
+
+「今は2つだけど、将来チャット機能を入れたいから右端に3つ目のパネルを追加しよう」といった拡張が、全体のレイアウトを壊さずに数行の修正で済みます。
+
+この柔軟性があるからこそ、今のうちに入れておく価値があるんです！
