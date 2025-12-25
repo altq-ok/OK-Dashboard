@@ -188,3 +188,121 @@ export default function DashboardPage() {
 
 ### 次のステップへのアドバイス
 これをベースに、`apps/web/app/dashboard/` の下に新しいフォルダを作ったり、サイドバーに `Link` コンポーネントを追加してページ遷移を学んだりしていくのが良いと思います！
+
+
+**はい、実は今のうちに入れてしまう方が「簡単」かつ「後が楽」です！**
+
+理由は、後から「グリッドレイアウト（Grid）」を「パネル分割」に書き換えるよりも、**最初から「パネルという器」の中に各機能を入れていく方が、コンポーネントのサイズ設計（レスポンシブ対応など）がスムーズに決まるから**です。
+
+今すぐ導入するための、最短のステップとコード例を紹介します。
+
+---
+
+### 1. ライブラリの追加
+
+```bash
+npm install react-resizable-panels
+```
+
+---
+
+### 2. ダッシュボード画面を「分割対応」に書き換える
+
+先ほどの `app/dashboard/page.tsx` を、パネル分割ライブラリを使った形にアップデートします。
+
+```tsx
+// apps/web/app/dashboard/page.tsx
+'use client'; // パネル分割はクライアント側での動作が必要
+
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import DashboardCalendar from '@/components/DashboardCalendar';
+
+export default function DashboardPage() {
+  return (
+    <main className="h-screen w-full bg-base-200 flex flex-col">
+      {/* ヘッダー部分は固定 */}
+      <header className="p-4 bg-base-100 border-b border-base-300 flex justify-between items-center">
+        <h1 className="text-xl font-bold">Team Dashboard</h1>
+        <div className="badge badge-primary">Tailwind v4 + daisyUI</div>
+      </header>
+
+      {/* メインコンテンツ：ここが分割パネルになる */}
+      <div className="flex-1 overflow-hidden p-2">
+        <PanelGroup direction="horizontal">
+          
+          {/* 左側：メイン機能（カレンダー） */}
+          <Panel defaultSize={70} minSize={30}>
+            <div className="h-full p-2">
+              <div className="card bg-base-100 shadow-xl h-full overflow-hidden">
+                <div className="card-body p-4 h-full flex flex-col">
+                  <h2 className="card-title text-sm mb-2">カレンダー</h2>
+                  <div className="flex-1 overflow-hidden border rounded-lg">
+                    <DashboardCalendar />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Panel>
+
+          {/* ドラッグできる境界線（ハンドル） */}
+          <PanelResizeHandle className="w-1.5 hover:w-2 bg-transparent hover:bg-primary/30 transition-all duration-300 relative group">
+            {/* 視覚的な「つまみ」の線 */}
+            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-[2px] bg-base-300 group-hover:bg-primary rounded-full my-4" />
+          </PanelResizeHandle>
+
+          {/* 右側：サブ機能（統計・お知らせなど） */}
+          <Panel defaultSize={30} minSize={20}>
+            <div className="h-full p-2 flex flex-col gap-4">
+              
+              {/* 統計カード */}
+              <div className="card bg-base-100 shadow-xl">
+                <div className="card-body p-4">
+                  <h2 className="card-title text-sm">統計情報</h2>
+                  <div className="stats stats-vertical shadow-inner bg-base-200/50">
+                    <div className="stat p-2">
+                      <div className="stat-title text-xs">今月のタスク</div>
+                      <div className="stat-value text-xl">12</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* お知らせ */}
+              <div className="card bg-primary text-primary-content shadow-xl flex-1">
+                <div className="card-body p-4 text-sm">
+                  <h2 className="card-title text-sm">Update</h2>
+                  <p>パネルをドラッグして広げてみてください！</p>
+                </div>
+              </div>
+
+            </div>
+          </Panel>
+
+        </PanelGroup>
+      </div>
+    </main>
+  );
+}
+```
+
+---
+
+### 3. なぜ「今」入れるのがいいのか？
+
+1.  **「高さ」の意識がつく:**
+    ダッシュボードを作っていると、「カレンダーが画面からはみ出す」といった問題によく直面します。パネル分割を入れると強制的に `h-full` や `overflow-hidden` を意識することになるので、結果として**破綻しにくい綺麗なレイアウト**になります。
+2.  **チームのテンションが上がる:**
+    マウスで境界線を動かせるだけで、一気に「本物のツールを作っている感」が出ます。初心者チームにとって、この「動かせる楽しさ」は学習の大きなガソリンになります。
+3.  **daisyUIとの相性が抜群:**
+    コード例のように、daisyUIの `card` を `Panel` の中に入れるだけで、枠線や影が綺麗に収まります。
+
+### 4. 成功のための小さなコツ
+
+*   **境界線（Handle）のデザイン:** 
+    上記のコードでは `bg-transparent hover:bg-primary/30` を使っています。最初は透明だけど、マウスを近づけると青く光るようなデザインです。これは最新のモダンなUIでよく使われる手法です。
+*   **スマホ対応:** 
+    `react-resizable-panels` は便利ですが、スマホ（狭い画面）だとドラッグが難しくなります。将来的には、画面幅が狭いときは `direction="vertical"`（縦並び）に変える、といったコードを1行足すだけで対応可能です。
+
+これで、見た目も操作感も「超モダン」なスタックが揃いました！
+**Next.js (App Router) + Tailwind v4 + daisyUI + Schedule-X + Resizable Panels**。
+これだけ揃っていれば、どんな多機能ダッシュボードでも作れる最強の土台です。
