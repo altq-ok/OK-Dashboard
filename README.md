@@ -14,10 +14,11 @@ As an alternative approach, you can create relevant files manually and run a com
 
 ## Getting Started
 
-1. Run `create-turbo-monorepo.bat` and input a project name.
+### Run `create-turbo-monorepo.bat` and input a project name.
 
 The batch script will create required files under a new directory with the project name you specified.
-2. Within the project directory, run:
+
+### Within the project directory, run:
 
 ```bash
 pnpm createn next-app@latest web
@@ -25,7 +26,7 @@ pnpm createn next-app@latest web
 
 Select the rec recommended Next.js defaults if you don't any particular preference.
 
-3. Once `apps/web` folder is created, update "dependencies" in `package.json` under `web`.
+### Once `apps/web` folder is created, update "dependencies" in `package.json` under `web`.
 
 This is required to make the Next.js project to recognise shared packages. For example:
 
@@ -34,4 +35,4 @@ This is required to make the Next.js project to recognise shared packages. For e
     "@repo/ui": "workspace:*",
 ```
 
-4. Remove automatically generated `pnpm-lock.yaml` under `apps/web` as monorepo should have only one lock file under root.
+### Remove automatically generated `pnpm-lock.yaml` under `apps/web` as monorepo should have only one lock file under root.
