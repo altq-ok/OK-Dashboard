@@ -525,3 +525,404 @@ return (
 「今は2つだけど、将来チャット機能を入れたいから右端に3つ目のパネルを追加しよう」といった拡張が、全体のレイアウトを壊さずに数行の修正で済みます。
 
 この柔軟性があるからこそ、今のうちに入れておく価値があるんです！
+
+ご提示いただいた詳細は、まさに**「モダンなWebデスクトップ」**のような非常に高度で使い勝手の良い設計です。
+
+結論から申し上げますと、**これまでに提案した構成（Next.js + Tailwind v4 + daisyUI + react-resizable-panels）で、すべて実現可能**です。
+
+ただし、ご希望の「レイアウト変更時も状態を維持する」「優先度に基づいて機能を閉じる」といった高度な動きを実現するために、**「状態管理（Zustand）」**と**「コンポーネントのレジストリ方式」**という2つの概念を組み合わせるのがベストです。
+
+以下に、その設計図をまとめました。
+
+---
+
+### 1. チーム開発を支える「機能レジストリ」方式
+
+メンバーが自由に機能を追加できるようにするために、`features` を一箇所に登録する場所を作ります。
+
+```typescript
+// apps/web/features/registry.tsx
+import { CalendarFeature } from './calendar';
+import { AnalyticsFeature } from './analytics';
+import { TaskFeature } from './tasks';
+
+// チームメンバーはここに自分のコンポーネントを足すだけ
+export const FEATURE_REGISTRY = {
+  calendar: { name: 'カレンダー', component: CalendarFeature, icon: '📅' },
+  analytics: { name: '分析', component: AnalyticsFeature, icon: '📈' },
+  tasks: { name: 'タスク', component: TaskFeature, icon: '✅' },
+};
+
+export type FeatureId = keyof typeof FEATURE_REGISTRY;
+```
+
+---
+
+### 2. レイアウトと状態を管理する「脳 (Zustand)」
+
+レイアウトを変更しても「今何を開いているか」を維持するために、グローバルな状態管理ライブラリ **Zustand**（ズスタンド）を使うのがおすすめです。非常に軽量でNext.jsと相性が良いです。
+
+```typescript
+// apps/web/store/useLayoutStore.ts
+import { create } from 'zustand';
+
+interface LayoutState {
+  // 今開いている機能のIDの配列（左から順）
+  openFeatures: FeatureId[]; 
+  // 現在のレイアウトモード（1:全画面, 2:二分割, 3:三分割）
+  layoutMode: number;
+  
+  // レイアウト変更アクション
+  setLayoutMode: (mode: number) => void;
+  // 機能を開くアクション
+  openFeature: (id: FeatureId) => void;
+}
+
+export const useLayoutStore = create<LayoutState>((set) => ({
+  openFeatures: ['calendar'], // 初期値
+  layoutMode: 1,
+
+  setLayoutMode: (mode) => set((state) => {
+    // 優先度ロジック：表示枠が減る場合、左側（配列の先頭）を残して切り捨てる
+    const newFeatures = state.openFeatures.slice(0, mode);
+    return { layoutMode: mode, openFeatures: newFeatures };
+  }),
+
+  openFeature: (id) => set((state) => {
+    // すでに開いていたら何もしない、なければ追加
+    if (state.openFeatures.includes(id)) return state;
+    return { openFeatures: [...state.openFeatures, id].slice(-3) }; // 最大3つまで
+  }),
+}));
+```
+
+---
+
+### 3. 実装：レイアウト維持と優先表示の仕組み
+
+`react-resizable-panels` を使い、`layoutMode` の数に合わせて動的にパネルを生成します。
+
+```tsx
+// apps/web/app/dashboard/layout-engine.tsx
+'use client';
+
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { useLayoutStore } from '@/store/useLayoutStore';
+import { FEATURE_REGISTRY } from '@/features/registry';
+
+export function LayoutEngine() {
+  const { openFeatures, layoutMode } = useLayoutStore();
+
+  return (
+    <PanelGroup direction="horizontal">
+      {openFeatures.map((featureId, index) => {
+        const FeatureComponent = FEATURE_REGISTRY[featureId].component;
+        
+        return (
+          <div key={featureId} className="flex h-full">
+            <Panel defaultSize={100 / layoutMode}>
+              <div className="h-full p-2">
+                <div className="card bg-base-100 shadow h-full overflow-hidden">
+                  <div className="p-4 border-b font-bold flex justify-between">
+                    {FEATURE_REGISTRY[featureId].name}
+                  </div>
+                  <div className="flex-1 overflow-auto">
+                    <FeatureComponent />
+                  </div>
+                </div>
+              </div>
+            </Panel>
+            
+            {/* 最後のパネル以外にリサイズハンドルを入れる */}
+            {index < openFeatures.length - 1 && (
+              <PanelResizeHandle className="w-1 bg-base-300 hover:bg-primary transition-colors" />
+            )}
+          </div>
+        );
+      })}
+    </PanelGroup>
+  );
+}
+```
+
+---
+
+### この方法が「もっといい方法」である理由
+
+1.  **状態の維持 (Persistence)**:
+    Next.jsの通常のページ遷移（`/calendar` から `/analytics`）だと、画面全体が切り替わり、入力中のデータなどが消えてしまいます。しかし、この「1つのページ内でコンポーネントを出し入れする」方式なら、**Reactのメモリ上にデータが残るため、レイアウトを変えても中身の状態を維持しやすい**です。
+2.  **優先度ロジック**:
+    Zustandの中で `slice(0, mode)` を使うことで、「枠が足りなくなったら右側の機能を閉じる（左側を優先する）」というルールが1行で書けます。
+3.  **チーム開発のしやすさ**:
+    メンバーは `features/` フォルダの中に自分のコンポーネントを作るだけです。メインのレイアウトエンジンを触る必要がないため、コンフリクト（競合）が起きにくいです。
+4.  **スタートページとの連携**:
+    スタートページには、`FEATURE_REGISTRY` のアイコンを並べるだけ。アイコンをクリックした時に `openFeature('analytics')` を呼べば、自動的にスロットにその機能が追加されます。
+
+### 実装に向けたアドバイス
+
+*   **Tailwind v4 / daisyUI**: これらで各機能の見た目を作れば、パネルが狭くなっても `card` や `btn-sm` などが自動で綺麗に馴染みます。
+*   **バックエンド連携**: `async` で取得したデータは、各コンポーネント（Calendarなど）の中で保持するか、Zustandに持たせることで、レイアウト変更時も再取得（リロード）せずに済みます。
+
+この構成なら、あなたが考えている「柔軟でプロっぽいダッシュボード」が最短距離で作れます。チームの皆さんと「どの機能(A, B, C...)を最初に作るか」を話し合ってみてください！応援しています。
+
+その通りです！この構成の最大の利点は、**「システムの骨組み（開発者）」と「各機能（チームメンバー）」の責任範囲が完全に分かれる**ことです。
+
+メンバーは `features` フォルダ内に自分の世界を作るだけで、ダッシュボードに自動的に反映されるようになります。
+
+以下に、モノレポ環境（`apps/web`）でのベストプラクティスな構成と、最新のパッケージリストを整理しました。
+
+---
+
+### 1. 必要なパッケージリスト
+
+最新の Tailwind v4 エコシステムと Zustand、リサイズパネルを統合するためのリストです。
+
+```bash
+# 基本スタック
+npm install tailwindcss@next @tailwindcss/postcss@next daisyui@beta zustand lucide-react
+
+# 画面分割
+npm install react-resizable-panels
+
+# カレンダー (Schedule-X)
+npm install @schedule-x/react @schedule-x/calendar @schedule-x/theme-default
+```
+※ `lucide-react` は、メニューやボタンに使うアイコン集で、チーム開発で非常に重宝します。
+
+---
+
+### 2. 推奨されるフォルダ構成（モノレポ `apps/web` 内）
+
+メンバーが迷わないよう、役割を明確に分けた構成です。
+
+```text
+apps/web/
+├── app/                  # ルーティング（Next.js App Router）
+│   ├── layout.tsx        # 全体共通のフォントや設定
+│   ├── page.tsx          # スタートページ（機能選択画面）
+│   └── dashboard/
+│       └── page.tsx      # ダッシュボード画面（LayoutEngineを置く）
+├── features/             # 【重要】メンバーが作業する場所
+│   ├── registry.tsx      # 全機能を一括管理する名簿
+│   ├── calendar/         # カレンダー機能一式
+│   │   ├── index.tsx     # 外部から呼ぶための窓口（Feature定義）
+│   │   ├── components/   # カレンダー関連の細かい部品
+│   │   └── hooks/        # データ取得ロジック
+│   └── analytics/        # 他のメンバーが作る機能例
+├── store/                # グローバルな状態管理
+│   └── useLayoutStore.ts # レイアウトと開いている機能の管理
+├── components/           # プロジェクト共通のUI部品（Button, Card等）
+└── lib/                  # 共通のユーティリティ関数
+```
+
+---
+
+### 3. 前に教えたコードはどうすればいい？
+
+以前教えたコードは**そのまま有効**ですが、今回の「機能追加」の流れに合わせて、以下のように配置すると綺麗です。
+
+#### ① `globals.css`（Tailwind v4 / daisyUI）
+**そのまま使えます。** `apps/web/app/globals.css` に置いてください。
+
+#### ② カレンダーのコード
+`apps/web/features/calendar/index.tsx` として、少しだけ整理して配置します。
+
+```tsx
+// apps/web/features/calendar/index.tsx
+'use client';
+
+import DashboardCalendar from './components/DashboardCalendar'; // 前に書いたカレンダー本体
+
+export const CalendarFeature = () => {
+  return (
+    <div className="p-4 h-full">
+      <DashboardCalendar />
+    </div>
+  );
+};
+```
+
+---
+
+### 4. チームメンバーに教える「追加の手順」
+
+新しく機能（例：タスク一覧）を追加するメンバーには、以下の3ステップだけを伝えてください。
+
+1.  `features/tasks/` フォルダを作り、自分のコンポーネントを作る。
+2.  `features/registry.tsx` を開き、自分の機能をインポートしてリストに足す。
+3.  それだけで、スタートページにアイコンが出て、ダッシュボードで開けるようになる！
+
+#### `registry.tsx` の中身（イメージ）
+```tsx
+import { CalendarFeature } from './calendar';
+import { TaskFeature } from './tasks'; // 新しく追加されたもの
+
+export const FEATURE_REGISTRY = {
+  calendar: { 
+    id: 'calendar', 
+    name: 'カレンダー', 
+    component: <CalendarFeature />,
+    icon: '📅' 
+  },
+  tasks: { 
+    id: 'tasks', 
+    name: 'タスク一覧', 
+    component: <TaskFeature />,
+    icon: '✅' 
+  },
+};
+```
+
+---
+
+### 5. データの維持についてのアドバイス
+
+「レイアウトを変更してもページを維持する」ためのポイントです。
+
+*   **ページ遷移をしない**: 
+    `app/calendar/page.tsx` のようにURLを分けてしまうと、画面全体がリロードされてしまいます。
+*   **ダッシュボード内での切り替え**: 
+    今回のように `DashboardPage` という**1つのページ内**でコンポーネントを出し入れするように作れば、レイアウトを変えても React コンポーネントの状態（入力内容やスクロール位置）は維持されやすくなります。
+
+### まとめ：この構成で得られるもの
+
+*   **あなた（リーダー）**: `app/dashboard/page.tsx` で `LayoutEngine` を作り、全体の動き（リサイズや優先度）を管理する。
+*   **チームメンバー**: `features/` 内で自分の機能の開発に集中する。
+
+この役割分担が、モノレポ開発で最もスピードが出る形です。これで土台は完璧ですので、自信を持ってスタートしてみてください！
+
+モノレポ環境で `pnpm` を使っている場合、**「何を実行時に使い（dependencies）」、「何をビルド時だけに使うか（devDependencies）」**を分けるのがベストプラクティスです。
+
+結論から言うと、**すべてを `-D` で入れるのはNG**です。以下のように使い分けてインストールしてください。
+
+---
+
+### 1. インストールコマンドの使い分け
+
+`apps/web` のディレクトリに移動してから実行するか、ルートから `--filter` を使って実行します。
+
+#### **実行時（ブラウザで動くもの）は普通にインストール**
+これらは、ユーザーのブラウザで実際に動作するコードが含まれるため `dependencies` に入れます。
+```bash
+# apps/web 内で実行
+pnpm add zustand lucide-react react-resizable-panels @schedule-x/react @schedule-x/calendar @schedule-x/theme-default
+```
+
+#### **開発・ビルド時（CSS生成など）に使うものは `-D` でインストール**
+これらは最終的なJavaScriptには含まれず、ビルドプロセス（CSSの書き出しなど）だけで使われるため `devDependencies` に入れます。
+```bash
+# apps/web 内で実行
+pnpm add -D tailwindcss@next @tailwindcss/postcss@next daisyui@beta
+```
+
+---
+
+### 2. なぜ分ける必要があるの？
+
+*   **dependencies (add)**: `zustand` や `react-resizable-panels` などのライブラリは、ブラウザが動くときにその中身のコードが必要です。
+*   **devDependencies (-D)**: `tailwindcss` や `daisyui` は、あなたがコードを書いている最中に「CSSファイルを生成する」ために働きます。一度CSSが生成されてしまえば、ブラウザ側では元の `tailwindcss` パッケージ自体は不要になるため、開発用として区別します。
+
+---
+
+### 3. モノレポ（pnpm）での注意点
+
+もしルートディレクトリから一気にインストールしたい場合は、以下のコマンドになります。
+
+```bash
+# フィルタリングして特定のアプリにだけ入れる場合
+pnpm add zustand lucide-react react-resizable-panels @schedule-x/react @schedule-x/calendar @schedule-x/theme-default --filter web
+
+pnpm add -D tailwindcss@next @tailwindcss/postcss@next daisyui@beta --filter web
+```
+
+### 4. まとめ：パッケージ振り分け表
+
+| パッケージ名 | オプション | 理由 |
+| :--- | :--- | :--- |
+| `zustand` | (なし) | 状態管理（実行時に必要） |
+| `lucide-react` | (なし) | アイコン表示（実行時に必要） |
+| `react-resizable-panels` | (なし) | リサイズ機能（実行時に必要） |
+| `@schedule-x/...` | (なし) | カレンダー表示（実行時に必要） |
+| `tailwindcss` | **-D** | CSSビルドツール |
+| `@tailwindcss/postcss` | **-D** | CSS変換ツール |
+| `daisyui` | **-D** | Tailwindのプラグイン（ビルド時にCSS化される） |
+
+この使い分けをしておくと、将来的にプロジェクトが巨大化した際も、ビルド速度やパッケージの管理が健全に保てます！
+
+非常に鋭い視点です。パフォーマンスと開発のしやすさのトレードオフについて、エンジニアリングの観点から比較・解説します。
+
+結論から言うと、**「今のままでも、工夫ひとつでページ遷移より速く、かつレイアウトの維持も両立できます」**。
+
+---
+
+### 1. パフォーマンスの比較
+
+#### **方式A：ページ遷移（通常のNext.jsルーティング）**
+*   **メリット**:
+    *   **コード分割（Code Splitting）**: `/calendar` にアクセスした時はカレンダーのコードだけを読み込むので、初速が速いです。
+    *   **メモリ解放**: ページを離れると前のページのメモリが完全に解放されるため、長時間使ってもブラウザが重くなりにくいです。
+*   **デメリット**:
+    *   **状態の消失**: 遷移のたびにカレンダーが「初期状態」に戻ります（12月を表示していたのに1月に戻るなど）。
+    *   **チラつき**: サーバーからのレスポンスを待つ間、一瞬表示が途切れることがあります。
+
+#### **方式B：LayoutEngine（提案したコンポーネント切り替え方式）**
+*   **メリット**:
+    *   **爆速の切り替え**: 一度読み込めば、レイアウト変更は一瞬（ミリ秒単位）で終わります。
+    *   **UX（体験）の維持**: 入力中のテキストや、カレンダーの表示月がそのまま残ります。
+*   **デメリット**:
+    *   **初期ロードの肥大化**: 何もしないと、全機能（A, B, C...）のコードを最初に全部ダウンロードしてしまい、最初の表示が遅くなります。
+
+---
+
+### 2. 「LayoutEngine」のパフォーマンスを最強にする方法
+
+方式Bの欠点である「初期ロード」は、**`next/dynamic`（Lazy Loading）** という機能を使えば解決できます。
+
+これを使えば、**「その機能が実際に開かれるまで、そのコードをダウンロードしない」**という動きになります。これで「ページ遷移」と同等の軽さを手に入れられます。
+
+#### **修正後の `registry.tsx` のイメージ**
+```tsx
+import dynamic from 'next/dynamic';
+
+// コンポーネントを直接 import せず、dynamic を使う
+const CalendarFeature = dynamic(() => import('./calendar').then(mod => mod.CalendarFeature), {
+  loading: () => <div className="loading">読み込み中...</div>
+});
+
+const AnalyticsFeature = dynamic(() => import('./analytics').then(mod => mod.AnalyticsFeature));
+
+export const FEATURE_REGISTRY = {
+  calendar: { name: 'カレンダー', component: CalendarFeature, icon: '📅' },
+  // ...他の機能も同様
+};
+```
+
+---
+
+### 3. 「ページ遷移」の方が「簡単」なのは本当？
+
+実装の「簡単さ」については、実は**一長一短**です。
+
+*   **ページ遷移が簡単な点**: フォルダを作って `page.tsx` を置くだけ。Next.jsの基本。
+*   **ページ遷移が難しい点**: 「今のレイアウトを維持したまま遷移する」のが実は非常に難しい（Parallel Routesなど高度な知識が必要）。
+*   **提案方式が簡単な点**: 一度 `LayoutEngine` を作ってしまえば、あとは Zustand の配列を操作するだけなので、**「どの画面で何が起きているか」の管理がシンプル**になります。
+
+---
+
+### 4. 最終的なアドバイス：どっちがおすすめ？
+
+あなたが作りたい**「レイアウトを変更しても機能を維持する」**というダッシュボードなら、**提案した「LayoutEngine方式」がベスト**です。
+
+理由は、ページ遷移方式で「リサイズした境界線の位置」や「開いている複数の機能の組み合わせ」をURLだけで管理しようとすると、逆にコードが複雑怪奇になり、チームメンバーが混乱するからです。
+
+#### **パフォーマンス向上のための3カ条**
+1.  **Lazy Loadを使う**: 上記の `next/dynamic` を使う（これで初期ロードが爆速に）。
+2.  **Zustandを賢く使う**: 巨大なデータ（数万件のログなど）は Zustand に直接入れず、必要な時だけ API から取る。
+3.  **URLと同期させる（余裕があれば）**:
+    現在のレイアウト状態を `?views=calendar,tasks` のようにURLのクエリパラメータに同期させると、ブラウザの「戻る」ボタンも効くようになり、最強のダッシュボードになります。
+
+### まとめ
+「簡単さ」よりも、チームメンバーが**「自分の作った機能が、レイアウトを変えても消えずに動いている！」**という感動を味わえる方が、プロジェクトとしては成功しやすいです。
+
+パフォーマンスは `next/dynamic` で解決できるので、今の「LayoutEngine方式」で自信を持って進めてください！
+
