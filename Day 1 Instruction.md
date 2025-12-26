@@ -926,3 +926,435 @@ export const FEATURE_REGISTRY = {
 
 パフォーマンスは `next/dynamic` で解決できるので、今の「LayoutEngine方式」で自信を持って進めてください！
 
+はい、その通りです！「LayoutEngine」を中心に据えることで、`page.tsx` は非常にシンプルになり、各機能の独立性が高まります。
+
+`FeatureId` については、`registry.tsx` で `export type FeatureId = ...` と定義しておけば、**どのファイルからでも import して型安全に利用できます。** これにより、存在しない機能を開こうとするバグを未然に防げます。
+
+これまでの議論を統合した、完成版に近いコード群を整理しました。
+
+---
+
+### 1. 機能名簿と型定義 (`features/registry.tsx`)
+
+メンバーが機能を追加する場所です。`FeatureId` もここで定義します。
+
+```tsx
+// apps/web/features/registry.tsx
+import dynamic from 'next/dynamic';
+import { JSX } from 'react';
+
+// パフォーマンスのため lazy loading を使用
+const CalendarFeature = dynamic(() => import('./calendar').then(mod => mod.CalendarFeature));
+// メンバーが追加する機能の例
+const AnalyticsFeature = dynamic(() => import('./analytics').then(mod => mod.AnalyticsFeature), {
+  loading: () => <div className="p-10 loading loading-ghost">読み込み中...</div>
+});
+
+export const FEATURE_REGISTRY = {
+  calendar: { name: 'カレンダー', component: CalendarFeature, icon: '📅' },
+  analytics: { name: '分析グラフ', component: AnalyticsFeature, icon: '📈' },
+  tasks: { name: 'タスク', component: () => <div className="p-8">✅ タスクリスト</div>, icon: '✅' },
+} as const;
+
+// 他のファイルで「どの機能か」を指定するために import して使う
+export type FeatureId = keyof typeof FEATURE_REGISTRY;
+```
+
+---
+
+### 2. 状態管理 (`store/useLayoutStore.ts`)
+
+ここで `FeatureId` を使って、どの機能がどこにあるかを管理します。
+
+```tsx
+// apps/web/store/useLayoutStore.ts
+import { create } from 'zustand';
+import { FeatureId } from '@/features/registry';
+
+interface LayoutState {
+  openFeatures: FeatureId[];
+  layoutMode: number; // 1, 2, or 3 panels
+  setLayoutMode: (mode: number) => void;
+  toggleFeature: (id: FeatureId) => void;
+}
+
+export const useLayoutStore = create<LayoutState>((set) => ({
+  openFeatures: ['calendar'], // 初期表示
+  layoutMode: 1,
+
+  setLayoutMode: (mode) => set((state) => {
+    // 優先度：枠が減る場合、左（配列の前方）を残す
+    const nextFeatures = state.openFeatures.slice(0, mode);
+    return { layoutMode: mode, openFeatures: nextFeatures };
+  }),
+
+  toggleFeature: (id) => set((state) => {
+    if (state.openFeatures.includes(id)) {
+      // すでに開いていれば閉じる
+      return { openFeatures: state.openFeatures.filter(f => f !== id) };
+    }
+    // 最大3つまで追加（新しく開いたものを右側へ）
+    const nextFeatures = [...state.openFeatures, id].slice(-3);
+    return { 
+      openFeatures: nextFeatures,
+      layoutMode: Math.max(state.layoutMode, nextFeatures.length)
+    };
+  }),
+}));
+```
+
+---
+
+### 3. メイン画面の構築 (`app/dashboard/page.tsx`)
+
+ここが「LayoutEngine」の実体です。
+
+```tsx
+// apps/web/app/dashboard/page.tsx
+'use client';
+
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { useLayoutStore } from '@/store/useLayoutStore';
+import { FEATURE_REGISTRY } from '@/features/registry';
+
+export default function DashboardPage() {
+  const { openFeatures, layoutMode, setLayoutMode } = useLayoutStore();
+
+  return (
+    <div className="h-screen flex flex-col bg-base-200">
+      {/* ヘッダー兼レイアウトコントローラー */}
+      <header className="p-3 bg-base-100 border-b flex justify-between items-center shadow-sm">
+        <h1 className="font-bold px-2">Team Dash</h1>
+        <div className="join bg-base-200 p-1">
+          {[1, 2, 3].map(m => (
+            <button 
+              key={m}
+              onClick={() => setLayoutMode(m)}
+              className={`join-item btn btn-xs ${layoutMode === m ? 'btn-primary' : 'btn-ghost'}`}
+            >
+              {m}画面
+            </button>
+          ))}
+        </div>
+      </header>
+
+      {/* 分割レイアウト実行部 */}
+      <div className="flex-1 overflow-hidden p-2">
+        {openFeatures.length === 0 ? (
+          <div className="h-full flex items-center justify-center">機能を選択してください</div>
+        ) : (
+          <PanelGroup direction="horizontal" autoSaveId="dashboard-layout">
+            {openFeatures.map((fId, index) => {
+              const feature = FEATURE_REGISTRY[fId];
+              return (
+                <div key={fId} className="flex h-full">
+                  <Panel minSize={20}>
+                    <div className="h-full px-1">
+                      <div className="card bg-base-100 shadow h-full flex flex-col overflow-hidden">
+                        <div className="p-3 bg-base-200/50 flex justify-between items-center">
+                          <span className="text-sm font-bold">{feature.icon} {feature.name}</span>
+                        </div>
+                        <div className="flex-1 overflow-auto relative">
+                          <feature.component />
+                        </div>
+                      </div>
+                    </div>
+                  </Panel>
+                  {/* パネルの間にハンドルを置く */}
+                  {index < openFeatures.length - 1 && (
+                    <PanelResizeHandle className="w-1.5 bg-transparent hover:bg-primary/20 transition-all relative group">
+                      <div className="absolute inset-y-4 left-1/2 -translate-x-1/2 w-0.5 bg-base-300 group-hover:bg-primary rounded-full" />
+                    </PanelResizeHandle>
+                  )}
+                </div>
+              );
+            })}
+          </PanelGroup>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+### 4. スタート画面 (`app/page.tsx`)
+
+機能を選んでダッシュボードへ飛ばす入り口です。
+
+```tsx
+// apps/web/app/page.tsx
+'use client';
+
+import { FEATURE_REGISTRY, FeatureId } from '@/features/registry';
+import { useLayoutStore } from '@/store/useLayoutStore';
+import { useRouter } from 'next/navigation';
+
+export default function StartPage() {
+  const router = useRouter();
+  const toggleFeature = useLayoutStore(state => state.toggleFeature);
+
+  const handleSelect = (id: FeatureId) => {
+    toggleFeature(id);
+    router.push('/dashboard');
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-base-200 p-6">
+      <h1 className="text-4xl font-black mb-12">Dashboard System</h1>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-6 max-w-2xl w-full">
+        {(Object.keys(FEATURE_REGISTRY) as FeatureId[]).map((id) => (
+          <button 
+            key={id}
+            onClick={() => handleSelect(id)}
+            className="card bg-base-100 shadow-xl hover:shadow-2xl hover:scale-105 transition-all cursor-pointer group"
+          >
+            <div className="card-body items-center text-center">
+              <span className="text-5xl mb-4">{FEATURE_REGISTRY[id].icon}</span>
+              <h2 className="card-title group-hover:text-primary">{FEATURE_REGISTRY[id].name}</h2>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+### フォルダ構成の最終確認
+
+```text
+apps/web/
+├── app/
+│   ├── globals.css        # 前に教えた内容（Tailwind v4 / daisyUI）
+│   ├── page.tsx           # スタート画面（上記コード）
+│   └── dashboard/
+│       └── page.tsx       # メイン画面（上記コード）
+├── features/
+│   ├── registry.tsx       # 名簿（上記コード）
+│   └── calendar/
+│       ├── index.tsx      # Export { CalendarFeature }
+│       └── components/    # カレンダーの内部部品（Schedule-X等）
+└── store/
+    └── useLayoutStore.ts  # Zustandの状態管理（上記コード）
+```
+
+### まとめ
+
+*   **`FeatureId` のインポート**: どこでも使えます。`useLayoutStore` でも `StartPage` でも大活躍します。
+*   **パフォーマンス**: `next/dynamic` により、使わない機能のコードは読み込まれません。
+*   **状態の維持**: ダッシュボード内でレイアウトを変更しても、コンポーネントが破棄されない（`openFeatures` 配列に残っている）限り、中身の状態は保たれます。
+
+これで、チーム開発の土台が完全に整いました！メンバーには「`features/` に自分のフォルダを作って、`registry.tsx` に名前を書いてね」と伝えるだけでOKです。最高のダッシュボードになりそうですね！
+
+ダッシュボードの骨組みを完成させるための、残りの主要ファイルをすべて書き出しました。これらを配置すれば、チームメンバーがすぐに開発に参加できる状態になります。
+
+---
+
+### 1. 全体の土台 (`apps/web/app/layout.tsx`)
+
+全てのページのベースとなるファイルです。ここで `globals.css` を読み込みます。
+
+```tsx
+// apps/web/app/layout.tsx
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "Team Modular Dashboard",
+  description: "Built with Next.js, Tailwind v4, and daisyUI",
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    // data-theme で daisyUI のテーマを指定できます（light, dark, cupckakeなど）
+    <html lang="ja" data-theme="light">
+      <body className={inter.className}>{children}</body>
+    </html>
+  );
+}
+```
+
+---
+
+### 2. カレンダー機能の入り口 (`apps/web/features/calendar/index.tsx`)
+
+`registry.tsx` から呼び出される窓口です。
+
+```tsx
+// apps/web/features/calendar/index.tsx
+import DashboardCalendar from "./components/DashboardCalendar";
+
+export const CalendarFeature = () => {
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* 画面いっぱいに広がるように設定 */}
+      <div className="flex-1 p-2">
+        <DashboardCalendar />
+      </div>
+    </div>
+  );
+};
+```
+
+---
+
+### 3. カレンダーの具体的な中身 (`apps/web/features/calendar/components/DashboardCalendar.tsx`)
+
+以前のコードをこのフォルダ構成に合わせました。
+
+```tsx
+// apps/web/features/calendar/components/DashboardCalendar.tsx
+'use client';
+
+import { useCalendarApp, ScheduleXCalendar } from '@schedule-x/react';
+import { createViewMonthGrid } from '@schedule-x/calendar';
+import { useState } from 'react';
+
+export default function DashboardCalendar() {
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+
+  const calendar = useCalendarApp({
+    views: [createViewMonthGrid()],
+    events: [
+      { id: '1', title: 'チーム会議', start: '2025-12-25 10:00', end: '2025-12-25 11:00' },
+      { id: '2', title: 'リリース日', start: '2025-12-26', end: '2025-12-26' },
+    ],
+    callbacks: {
+      onEventClick(calendarEvent) {
+        setSelectedEvent(calendarEvent);
+        (document.getElementById('calendar_modal') as HTMLDialogElement).showModal();
+      },
+    },
+  });
+
+  return (
+    <div className="h-full bg-base-100">
+      <ScheduleXCalendar calendarApp={calendar} />
+
+      {/* 詳細表示用モーダル */}
+      <dialog id="calendar_modal" className="modal">
+        <div className="modal-box">
+          <h3 className="font-bold text-lg">{selectedEvent?.title}</h3>
+          <p className="py-4 text-sm opacity-70">
+            開始: {selectedEvent?.start} <br />
+            終了: {selectedEvent?.end}
+          </p>
+          <div className="modal-action">
+            <form method="dialog">
+              <button className="btn">閉じる</button>
+            </form>
+          </div>
+        </div>
+      </dialog>
+    </div>
+  );
+}
+```
+
+---
+
+### 4. 他のメンバーが作る機能のサンプル (`apps/web/features/analytics/index.tsx`)
+
+カレンダー以外の機能がどう作られるかの見本です。
+
+```tsx
+// apps/web/features/analytics/index.tsx
+'use client';
+
+export const AnalyticsFeature = () => {
+  return (
+    <div className="p-6 space-y-4">
+      <div className="stats shadow w-full">
+        <div className="stat">
+          <div className="stat-title">総アクセス</div>
+          <div className="stat-value">31K</div>
+          <div className="stat-desc">Jan 1st - Feb 1st</div>
+        </div>
+      </div>
+      <div className="card bg-secondary text-secondary-content">
+        <div className="card-body text-xs">
+          <p>ここにグラフ（Recharts等）を表示するイメージです。</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+---
+
+### 5. 共通ユーティリティ (`apps/web/lib/utils.ts`)
+
+クラス名を綺麗に結合するための便利な関数です。Tailwind v4 でも重宝します。
+
+```tsx
+// apps/web/lib/utils.ts
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+// クラス名の競合を解決しつつ結合する (例: p-4 p-2 -> p-2)
+// 使う場合は pnpm add clsx tailwind-merge してください
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+```
+
+---
+
+### 6. 共通コンポーネント (`apps/web/components/SimpleCard.tsx`)
+
+チーム全員が使える共通の枠組みです。
+
+```tsx
+// apps/web/components/SimpleCard.tsx
+interface Props {
+  title: string;
+  children: React.ReactNode;
+}
+
+export const SimpleCard = ({ title, children }: Props) => (
+  <div className="card bg-base-100 shadow-sm border border-base-200">
+    <div className="card-body p-4">
+      <h3 className="card-title text-sm opacity-60 uppercase">{title}</h3>
+      <div>{children}</div>
+    </div>
+  </div>
+);
+```
+
+---
+
+### 改めて、全体を動かすための確認
+
+1.  **ZustandのStore** (`store/useLayoutStore.ts`)
+2.  **Registry** (`features/registry.tsx`)
+3.  **Layout Engine** (`app/dashboard/page.tsx`)
+4.  **Start Page** (`app/page.tsx`)
+
+これらは前回提供したコードをそのまま配置してください。
+
+### チームメンバーへの説明用メモ
+
+チームメンバーには以下のセットアップをお願いしてください。
+
+> 1. `apps/web/features/[自分の機能名]/index.tsx` を作成。
+> 2. `apps/web/features/registry.tsx` に自分の機能をインポート。
+> 3. `FEATURE_REGISTRY` に自分の機能を追加。
+> 4. `pnpm dev` で起動して、スタート画面から自分の機能をクリック。
+
+これで、個別の機能を開発しながら、リサイズ可能なダッシュボード上で他の機能と同時に動かすテストができるようになります。
+
+### 最後に
+Tailwind v4 と daisyUI v5 の組み合わせにより、CSSをほとんど書かずに「`btn`」「`card`」「`stats`」などのクラス名だけでこれらすべてが構成されています。パフォーマンスも `next/dynamic` で最適化されているので、機能が増えても安心です！
+
