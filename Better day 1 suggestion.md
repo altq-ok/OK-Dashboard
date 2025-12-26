@@ -289,3 +289,140 @@ GitHubからクローンできなくても、ブラウザでコードを見る�
 
 まずは **「ルートの設定ファイル3つ」を作り、空の `apps/web` で Next.js が起動するまで** を目標にしてみてください。そこができれば、あとは部品（packages）を足していくだけです！
 
+仰る通り、**「分離している」ことは開発において非常に強力なメリット**になります。
+
+`apps/api` を独立させることで、もし将来「Node.jsじゃなくてGo言語に変えたい」とか「別のフレームワークを試したい」と思った時、フロントエンド（`apps/web`）に影響を与えずに、バックエンドだけをごっそり作り直すことができます。これを **「疎結合（そけつごう）」** と呼び、良い設計の基本です。
+
+手動で `apps/api` を作るための「最小構成」の手順をまとめました。
+
+---
+
+### 1. `apps/api` フォルダの作成と初期化
+
+まずはディレクトリを作り、その中で `package.json` を手動で作成します。
+
+```bash
+mkdir -p apps/api
+cd apps/api
+pnpm init
+```
+
+### 2. `apps/api/package.json` の設定
+
+モノレポの一部として機能するように書き換えます。ポイントは `name` と `dependencies` です。
+
+```json
+{
+  "name": "@repo/api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsup src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "@repo/types": "workspace:*" 
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.17",
+    "@types/cors": "^2.8.13",
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
+```
+*   **tsx**: TypeScriptをそのまま実行できる便利なツールです。
+*   **@repo/types**: 先ほど作った「共有型定義」をここでも使います。
+
+---
+
+### 3. TypeScriptの設定 (`apps/api/tsconfig.json`)
+
+Node.js環境用の設定が必要です。
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true
+  }
+}
+```
+
+---
+
+### 4. 最小限のサーバーコード (`apps/api/src/index.ts`)
+
+ここで「共有型」を使ってデータを返す練習をします。
+
+```typescript
+import express from 'express';
+import cors from 'cors';
+import { CalendarEvent } from '@repo/types'; // 共有パッケージからインポート！
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const PORT = 3001;
+
+// 共有型を使ってデータを作成
+const events: CalendarEvent[] = [
+  { id: '1', title: 'APIから取得した予定' }
+];
+
+app.get('/api/events', (req, res) => {
+  res.json(events);
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+});
+```
+
+---
+
+### 5. 自分で調べて理解を深めるための「キーワード」
+
+この `apps/api` を作る過程で、以下のキーワードを調べてみると「コントロールできている感」が強まります。
+
+1.  **Express.js**: Node.jsで最も有名なサーバーフレームワークです。
+    *   調べる: [Express 公式ガイド](https://expressjs.com/ja/guide/routing.html) の「ルーティング」の部分。
+2.  **CORS (Cross-Origin Resource Sharing)**:
+    *   調べる: 「なぜフロント(3000番)からバック(3001番)に通信しようとするとエラーが出るのか？」
+    *   この `cors()` という1行が何を防いでくれているのかを理解すると、Webの仕組みに強くなります。
+3.  **tsx vs ts-node**:
+    *   調べる: [tsx (GitHub)](https://github.com/privatenumber/tsx) 
+    *   TypeScriptをコンパイルせずに実行する仕組みを知ると、開発スピードが上がります。
+
+---
+
+### 6. モノレポ全体の起動
+
+ルート（一番上の階層）の `package.json` に以下のように書いてあれば、一発で起動できます。
+
+```json
+"scripts": {
+  "dev": "turbo dev"
+}
+```
+
+これで `pnpm dev` を叩くと：
+*   `apps/web` (Next.js) が 3000番で起動
+*   `apps/api` (Node.js) が 3001番で起動
+*   共通の `CalendarEvent` 型を両方が参照している
+
+という状態になります。「片方を壊しても、もう片方は生きている」し、「型定義を `packages/types` で変えれば、両方にエラーが出て教えてくれる」という最強の環境が整います。
+
+まずはこの **「型を共有した最小の通信」** が成功することを目標にしてみてください！
+
