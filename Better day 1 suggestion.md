@@ -169,3 +169,123 @@ my-dashboard-monorepo/
 最初は Turborepo が生成する大量のファイルに圧倒されるかもしれませんが、大事なのは **`apps`（アプリ）と `packages`（部品）に分かれている** という点だけです。
 
 まずは `apps/web` の中だけで `Hello World` を出し、そこから少しずつ `packages/types` を作って型を共有する、という風に **「一歩ずつ外側に広げていく」** 感覚で進めると、コントロールを失わずに済みますよ！
+
+「GitHubからダウンロードできない」という制約がある場合、**手動でモノレポを構築するのは、仕組みを理解する上で最高の修行になります。** むしろ、ツールに頼らず自分で設定ファイルを書くことで、モノレポの正体（依存関係の解決方法）が完璧に理解できるようになります。
+
+`npx create-turbo` が裏で行っていることを、**自分の手で再現するための最小ステップ**をまとめました。
+
+---
+
+### 1. 手動モノレポ構築の最小ステップ
+
+まずは、ターミナルで空のフォルダを作り、以下の順にファイルを作成してください。
+
+#### ① ルートの `package.json` を作る
+プロジェクトの全体像を定義します。
+
+```json
+{
+  "name": "my-dashboard-monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build"
+  },
+  "devDependencies": {
+    "turbo": "latest"
+  }
+}
+```
+
+#### ② `pnpm-workspace.yaml` を作る（pnpmの肝）
+これが「モノレポの地図」です。
+
+```yaml
+packages:
+  - "apps/*"
+  - "packages/*"
+```
+
+#### ③ `turbo.json` を作る（Turborepoの設定）
+どのコマンドをどの順番で実行するかを定義します。
+
+```json
+{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**"]
+    }
+  }
+}
+```
+
+---
+
+### 2. アプリとパッケージを作る
+
+次に、中身を自力で構築します。
+
+#### apps/web (Next.js)
+1. `apps/web` フォルダを作成。
+2. その中で `pnpm init` し、`next`, `react`, `react-dom` をインストール。
+3. `package.json` に `"scripts": { "dev": "next dev" }` を追加。
+
+#### packages/types (共有型定義)
+ここが勉強のポイントです。
+
+1. `packages/types` フォルダを作成。
+2. `package.json` を作成。名前を `"name": "@repo/types"` にします。
+3. `index.ts` を作り、共有したい型を書きます。
+   ```typescript
+   export type CalendarEvent = { id: string; title: string; };
+   ```
+
+---
+
+### 3. パッケージを「繋ぐ」方法を学ぶ
+
+ここが一番重要です。`apps/web` から `@repo/types` を使うにはどうすればいいか？
+
+`apps/web/package.json` に以下を書き込みます。
+
+```json
+{
+  "dependencies": {
+    "@repo/types": "workspace:*"
+  }
+}
+```
+そして `pnpm install` を実行すると、pnpmが自動的に「あ、これは外のnpmから持ってくるんじゃなくて、隣にある `packages/types` を使うんだな」と理解してリンクを貼ってくれます。これがモノレポの魔法の正体です。
+
+---
+
+### 4. 調べるべき公式リポジトリとドキュメント
+
+GitHubからクローンできなくても、ブラウザでコードを見ることはできるはずです。以下の「生のコード」を参考にすると勉強になります。
+
+1.  **Turborepoの基本構造 (Kitchen Sink)**
+    [vercel/turbo リポジトリの examples/basic](https://github.com/vercel/turbo/tree/main/examples/basic)
+    *   各フォルダの `package.json` がどう繋がっているかを見てください。
+2.  **pnpm Workspace ドキュメント**
+    [pnpm.io/workspaces](https://pnpm.io/workspaces)
+    *   `workspace:*` という書き方の意味を調べましょう。
+3.  **Next.js の手動インストール**
+    [nextjs.org/docs/getting-started/installation](https://nextjs.org/docs/getting-started/installation)
+    *   `create-next-app` を使わずに `pnpm add next react react-dom` で始める方法が書いてあります。
+
+---
+
+### 5. この方法で進めるメリット
+
+*   **「魔法」がなくなる**: なぜ `pnpm dev` で全部のアプリが動き出すのか、その仕組みが分かります。
+*   **トラブルに強くなる**: モノレポでよく起きる「型が見つからない」「リンクが切れている」という問題に、自分で対処できるようになります。
+*   **社内環境に強い**: GitHubから落としたテンプレートには不要な設定も多いですが、自分で作れば「社内環境に必要な最小限」だけで構成できます。
+
+まずは **「ルートの設定ファイル3つ」を作り、空の `apps/web` で Next.js が起動するまで** を目標にしてみてください。そこができれば、あとは部品（packages）を足していくだけです！
+
