@@ -24,3 +24,14 @@ pnpm createn next-app@latest web
 ```
 
 Select the rec recommended Next.js defaults if you don't any particular preference.
+
+3. Once `apps/web` folder is created, update "dependencies" in `package.json` under `web`.
+
+This is required to make the Next.js project to recognise shared packages. For example:
+
+```json
+  "dependencies": {
+    "@repo/ui": "workspace:*",
+```
+
+4. Remove automatically generated `pnpm-lock.yaml` under `apps/web` as monorepo should have only one lock file under root.
