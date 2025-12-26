@@ -18,7 +18,7 @@ As an alternative approach, you can create relevant files manually and run a com
 
 The batch script will create required files under a new directory with the project name you specified.
 
---
+---
 
 ### Within the project directory, run:
 
@@ -28,7 +28,7 @@ pnpm createn next-app@latest web
 
 Select the rec recommended Next.js defaults if you don't any particular preference.
 
---
+---
 
 ### Once `apps/web` folder is created, update "dependencies" in `package.json` under `web`.
 
@@ -39,6 +39,6 @@ This is required to make the Next.js project to recognise shared packages. For e
     "@repo/ui": "workspace:*",
 ```
 
---
+---
 
 ### Remove automatically generated `pnpm-lock.yaml` under `apps/web` as monorepo should have only one lock file under root.
