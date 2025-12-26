@@ -92,3 +92,80 @@ pnpm add -D tailwindcss@next @tailwindcss/postcss@next daisyui@beta
 *   **「Zustand 使い方」** で、なぜ `useState` ではなく Zustand が必要なのかを考える。
 
 一気に完成させようとせず、**「今日は画面が半分に割れた！」「今日はボタンを押したら文字が変わった！」**という小さな成功を積み重ねるのが、一番確実にコントロールできるようになる道です。一歩ずつ進んでいきましょう！
+
+**はい、間違いなく「最初からモノレポ構成で作る」ことを強くおすすめします。**
+
+理由は、単一のプロジェクトで作ったものを後からモノレポに移行するのは、フォルダの移動だけでなく、ライブラリの依存関係や設定の書き換えなど、かなり手間がかかる（そしてエラーが起きやすい）からです。
+
+「最小構成」で始めるための、モノレポの土台作りのステップを整理しました。
+
+---
+
+### 1. なぜ「最初から」モノレポにするのか？
+
+*   **共有の「型」が作れる**: フロント（Next.js）とバック（Node.js）で、カレンダーのデータ形式（Type）を共有できる。これがTypeScript最大のメリットです。
+*   **設定の統一**: Tailwindの設定などを一箇所にまとめられる。
+*   **整理整頓**: 「これはUIの部品」「これはビジネスロジック」とフォルダで明確に分けられる。
+
+---
+
+### 2. 推奨ツール：Turborepo + pnpm
+
+Next.jsの開発元であるVercelが作っている **[Turborepo](https://turbo.build/)** を使うのが現在のスタンダードです。これと **pnpm** を組み合わせるのが最も効率的です。
+
+*   **調べるキーワード**: `Turborepo pnpm workspace`
+
+---
+
+### 3. 最初に行う「モノレポ土台」の作り方
+
+まずはターミナルで以下を実行して、モノレポの枠組みを作ります。
+
+```bash
+# Turborepoのテンプレートを使ってプロジェクト作成
+# (いろいろ聞かれますが、最初は "basic" などのシンプルなものを選ぶと良いです)
+npx create-turbo@latest my-dashboard-monorepo
+```
+
+作成されたフォルダの中身を、以下のように整理するイメージを持ってください。
+
+```text
+my-dashboard-monorepo/
+├── apps/               # 実行可能なアプリケーション
+│   ├── web/            # Next.js (フロントエンド)
+│   └── api/            # Node.js (将来作るバックエンド)
+├── packages/           # 複数のアプリで共有する「部品」
+│   ├── typescript-config/ # TypeScriptの共通設定
+│   ├── tailwind-config/   # Tailwindの共通設定
+│   └── types/          # 【重要】共有する型定義 (Event型など)
+├── pnpm-workspace.yaml  # モノレポ全体の設計図
+└── turbo.json          # ビルドの高速化設定
+```
+
+---
+
+### 4. 最初にやるべき「最小構成」の学習ステップ
+
+モノレポのフォルダができたら、一気に全部作らずに以下の順で進めてみてください。
+
+1.  **`pnpm-workspace.yaml` を理解する**: 
+    「どのフォルダがモノレポの一部か」を定義するファイルです。[pnpm公式ドキュメント](https://pnpm.io/ja/workspaces)をさらっと見てみてください。
+2.  **`packages/types` を作ってみる**: 
+    ここがTypeScript学習のスタートに最適です。
+    `export type CalendarEvent = { id: string; title: string; }` だけを書いたファイルを作り、それを `apps/web` から呼び出す練習をします。
+3.  **`apps/web` に Tailwind v4 を入れる**: 
+    前のステップで教えた Tailwind v4 の導入を、モノレポ内の `apps/web` に対して行います。
+
+---
+
+### 5. 役立つドキュメント・リンク
+
+*   **Turborepo公式 (Getting Started)**: [turbo.build/repo/docs](https://turbo.build/repo/docs)
+    *   モノレポとは何か？を理解するのに最適です。
+*   **pnpm Workspaces**: [pnpm.io/workspaces](https://pnpm.io/workspaces)
+    *   パッケージ同士をどう繋ぐ（リンクする）かの基本が書かれています。
+
+### アドバイス
+最初は Turborepo が生成する大量のファイルに圧倒されるかもしれませんが、大事なのは **`apps`（アプリ）と `packages`（部品）に分かれている** という点だけです。
+
+まずは `apps/web` の中だけで `Hello World` を出し、そこから少しずつ `packages/types` を作って型を共有する、という風に **「一歩ずつ外側に広げていく」** 感覚で進めると、コントロールを失わずに済みますよ！
