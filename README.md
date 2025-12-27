@@ -61,7 +61,7 @@ ignoredBuiltDependencies:
 
 ## DIY Instructions
 
-If you want to build a similar dashboard from scratch, you can follow below instructions and customise them to fit your own needs.
+If you want to build a similar dashboard from scratch, you can follow below instructions and customise files in `apps/web`.
 
 ### Install shadcn/ui
 
@@ -89,7 +89,8 @@ pnpm dlx shadcn@latest add resizable
 
 If you want to use v4 and fix the issues by yourself, update class names to `{ Group, Panel, Separator }` and change all `data` instances to `aria`. For `Separator`, it defines orientation of a separator, thus e.g. `data-[panel-group-direction=vertical]` changes to `aria-[orientation=horizontal]`.
 
-You can find an updated version of `resizable.tsx` is in this repository (`my-turborepo/apps/web/components/ui/resizable.tsx`).
+You can find an updated version of `resizable.tsx` in this repository (`my-turborepo/apps/web/components/ui/resizable.tsx`).
 
+Once an official fix is release, you can re-run an above command to fetch the fix.
 
 
