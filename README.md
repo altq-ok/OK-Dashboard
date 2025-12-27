@@ -14,44 +14,50 @@ As an alternative approach, you can create relevant files manually and run a com
 
 ## Getting Started
 
-### Run `create-turbo-monorepo.bat` and input a project name.
+### Create monorepo (Turbrepo replication)
+
+Run `create-turbo-monorepo.bat` and input a project name.
 
 The batch script will create required files under a new directory with the project name you specified.
 
----
+### Create Next.js application within monorepo (`apps/web`)
 
-### Within the project directory, run:
+Within the project directory, run:
 
 ```bash
 pnpm createn next-app@latest web
 ```
 
-Select the rec recommended Next.js defaults if you don't any particular preference.
+Select recommended Next.js defaults if you don't have any particular preference.
 
----
+### Update `apps/web` to run as monorepo
 
-### Once `apps/web` folder is created, update "dependencies" in `package.json` under `web`.
+Once `apps/web` folder is created, update "dependencies" in `apps/web/package.json`. It will make monorepo shared packages accessible within the Next.js application.
 
-This is required to make the Next.js project to recognise shared packages. For example:
+You need to manually update dependencies when you add more shared packages.
 
 ```json
-  "dependencies": {
-    "@repo/ui": "workspace:*",
+"dependencies": {
+  "@repo/ui": "workspace:*",
 ```
 
----
+Remove `apps/web/pnpm-lock.yaml` and `apps/web/pnpm-workspace.yaml` since they are customised to run as a standalone Next.js application.
 
-### Remove automatically generated `pnpm-lock.yaml` and `pnpm-workspace.yaml` under `apps/web`.
+Once removed, run below command in the project root directory and in `apps/web`.
 
-Monorepo should have only one lock file and pnpm-workspace under root. Then, add below lines to `pnpm-workspace.yaml` under root.
+```bash
+# This command will re-generate correct pnpm-lock.yaml and pnpm-workspace.yaml
+pnpm install
+```
+
+Also, you need to add below lines to `pnpm-workspace.yaml` in the root project folder.
 
 ```yaml
+# This is required for Next.js application
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
 ```
-
-Then, run `pnpm install` in both root and `apps/web` which will create monorepo compatible `pnpm-lock.yaml` and `pnpm-workspace.yaml`.
 
 ## DIY Instructions
 
@@ -63,11 +69,22 @@ Run below command in `apps/web`:
 
 ```bash
 pnpm dlx shadcn@latest init
-
 ```
+
+You can select any colour you prefer when prompted. Default is Natural.
 
 ### Add shadcn components
 
 #### Resizable
 
 Refer to this **[page](https://ui.shadcn.com/docs/components/resizable)** for details.
+
+Install with:
+
+```bash
+pnpm dlx shadcn@latest add resizable
+```
+
+
+
+
