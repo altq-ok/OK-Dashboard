@@ -93,4 +93,12 @@ You can find an updated version of `resizable.tsx` in this repository (`my-turbo
 
 Once an official fix is release, you can re-run an above command to fetch the fix.
 
+#### Sidebar
 
+Refer to this **[page](https://ui.shadcn.com/docs/components/sidebar)** for details.
+
+Install with:
+
+```bash
+pnpm dlx shadcn@latest add sidebar
+```
