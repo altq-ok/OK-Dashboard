@@ -85,6 +85,11 @@ Install with:
 pnpm dlx shadcn@latest add resizable
 ```
 
+`react-resizable-panels` has been updated to v4, and it has some major changes. `resizable.tsx` shipped with above command is broken, and you can either manually fix it or install `react-resizable-panels@v2.1.7` for compatibility.
+
+If you want to use v4 and fix the issues by yourself, update class names to `{ Group, Panel, Separator }` and change all `data` instances to `aria`.
+
+You can find an updated version of `resizable.tsx` is in this repository (`my-turborepo/apps/web/components/ui/resizable.tsx`).
 
 
 
