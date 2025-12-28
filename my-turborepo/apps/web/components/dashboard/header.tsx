@@ -1,11 +1,12 @@
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
-import { DashboardNavigationMenu } from '@/components/dashboard/navigation_menu';
+import { DashboardNavigationMenu } from '@/components/dashboard/navigation-menu';
 import { ToggleThemeButton } from '@/components/dashboard/toggle-theme';
+import { LayoutResetButton, LayoutPicker } from '@/components/dashboard/layout-picker';
 
 export function Header() {
   return (
-    <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-background/95 px-6 backdrop-blur">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-4 border-b bg-background/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       {/* Left: sidebar toggle and some fancy stuff*/}
       <div className="flex items-center gap-2">
         <SidebarTrigger className="-ml-1" />
@@ -18,8 +19,10 @@ export function Header() {
         <DashboardNavigationMenu />
       </div>
 
-      {/* Right: toggle theme and other settings */}
+      {/* Right: layout and theme settings */}
       <div className="flex items-center gap-4">
+        <LayoutResetButton />
+        <LayoutPicker />
         <ToggleThemeButton />
       </div>
     </header>

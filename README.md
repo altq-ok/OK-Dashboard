@@ -43,7 +43,7 @@ You need to manually update dependencies when you add more shared packages.
 
 Remove `apps/web/pnpm-lock.yaml` and `apps/web/pnpm-workspace.yaml` since they are customised to run as a standalone Next.js application.
 
-Once removed, run below command in the project root directory and in `apps/web`.
+Once removed, run below command in the project root directory.
 
 ```bash
 # This command will re-generate correct pnpm-lock.yaml and pnpm-workspace.yaml
@@ -116,8 +116,31 @@ pnpm dlx shadcn@latest add button
 pnpm dlx shadcn@latest add dropdown-menu
 ```
 
-
 ### Original components
 
 Since `shadcn/ui` installs components under `apps/web/components/ui`, I saved dashboard specific components under `apps/web/components/dashboard`.
+
+After running above commands, you can copy these components and customise for your use cases.
+
+### State management
+
+You would want to save states to enable layout changes and restore last-used layout etc.
+
+To save data to URL: `nuqs`
+To save data to memory: `zustand`
+
+```bash
+pnpm install nuqs zustand
+```
+
+Data for Zustand is saved with `apps/web/store/useDashboardStore.ts`.
+
+Layout patterns etc. are saved under `apps/web/lib` (e.g. `layout-templates.ts`)
+
+### Type definitions
+
+This is a monorepo (i.e. both frontend and backend are in the same repository). Although the backend may not be typescript, common type definitions are mainly done in `my-turborepo/packages/types` which enables type sharing between frontend and backend.
+
+If they are not common types, types are defined in `types` folder (e.g. `apps/web/types/dashboard.ts`).
+
 

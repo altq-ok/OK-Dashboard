@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/sidebar';
 
 // Menu items
-// TODO: implement actual components and urls
 const items = [
   {
     title: 'Home',
