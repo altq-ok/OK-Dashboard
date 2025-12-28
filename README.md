@@ -59,6 +59,15 @@ ignoredBuiltDependencies:
   - unrs-resolver
 ```
 
+### Add `.prettierrc`
+
+If you don't have any preference, you can copy `.prettierrc` in `my-turborepo`.
+
+```json
+
+```
+
+
 ## DIY Instructions
 
 If you want to build a similar dashboard from scratch, you can follow below instructions and customise files in `apps/web`.
@@ -93,14 +102,22 @@ You can find an updated version of `resizable.tsx` in this repository (`my-turbo
 
 Once an official fix is release, you can re-run an above command to fetch the fix.
 
-#### Sidebar
+#### Other components
 
-Refer to this **[page](https://ui.shadcn.com/docs/components/sidebar)** for details.
+Refer to this **[page](https://ui.shadcn.com/docs/components)** for available components.
 
-Install with:
+This project installs:
 
 ```bash
 pnpm dlx shadcn@latest add sidebar
+pnpm dlx shadcn@latest add navigation-menu
+pnpm dlx shadcn@latest add sonner
+pnpm dlx shadcn@latest add button
+pnpm dlx shadcn@latest add dropdown-menu
 ```
 
+
+### Original components
+
+Since `shadcn/ui` installs components under `apps/web/components/ui`, I saved dashboard specific components under `apps/web/components/dashboard`.
 

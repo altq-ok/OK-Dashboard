@@ -1,39 +1,31 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import type { Metadata } from 'next';
+import './globals.css';
 
-import { SidebarProvider } from "@/components/ui/sidebar";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { Providers } from '@/components/dashboard/providers';
+import { AppSidebar } from '@/components/dashboard/app-sidebar';
+import { Header } from '@/components/dashboard/header';
 
 export const metadata: Metadata = {
-  title: "OK-Dashboard",
-  description: "Dashboard",
+  title: 'OK-Dashboard',
+  description: 'Dashboard',
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
-        <SidebarProvider>
-          <main>
-            className=
-            {`${geistSans.variable} ${geistMono.variable} antialiased`}
-            {children}
-          </main>
-        </SidebarProvider>
+        <Providers>
+          <div className="flex h-screen w-full">
+            {/* Sidebar (left) */}
+            <AppSidebar />
+
+            {/* Main area (header and content) */}
+            <div className="flex flex-col flex-1 overflow-hidden">
+              <Header />
+              <main className="flex-1 overflow-auto bg-background">{children}</main>
+            </div>
+          </div>
+        </Providers>
       </body>
     </html>
   );
