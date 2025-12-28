@@ -1,10 +1,18 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { LayoutNode } from '@/types/dashboard';
 import { WidgetSlot } from './widget-slot';
 import { useDashboardStore } from '@/store/useDashboardStore';
+
+function debounce<T extends (...args: any[]) => void>(fn: T, ms: number) {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  return function (this: any, ...args: Parameters<T>) {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn.apply(this, args), ms);
+  };
+}
 
 interface Props {
   node: LayoutNode;
@@ -12,20 +20,20 @@ interface Props {
 }
 
 export function RecursiveLayout({ node, templateId }: Props) {
-  const saveLayout = useDashboardStore((state) => state.saveLayout);
+  const updateLayoutSize = useDashboardStore((state) => state.updateLayoutSize);
 
-  // Save whole tree about resize
-  const handleLayoutChange = (layout: Record<string, number>) => {
+  // Save state only after 300ms pause using debounce
+  const debouncedSave = useMemo(
+    () =>
+      debounce((groupId: string, sizes: Record<string, number>) => {
+        updateLayoutSize(templateId, groupId, sizes);
+      }, 300),
+    [templateId, updateLayoutSize],
+  );
+
+  const handleLayoutChange = (sizes: Record<string, number>) => {
     if (node.type === 'group' && node.widgets) {
-      const updatedNode: LayoutNode = {
-        ...node,
-        widgets: node.widgets.map((w) => ({
-          ...w,
-          // Search for new size with ID, if not found, keep size
-          defaultSize: layout[w.id] ?? w.defaultSize,
-        })),
-      };
-      saveLayout(templateId, updatedNode);
+      debouncedSave(node.id, sizes);
     }
   };
 
@@ -41,7 +49,11 @@ export function RecursiveLayout({ node, templateId }: Props) {
     >
       {node.widgets?.map((child, index) => (
         <React.Fragment key={child.id}>
-          <ResizablePanel defaultSize={child.defaultSize} id={child.id}>
+          <ResizablePanel
+            defaultSize={child.defaultSize}
+            id={child.id}
+            minSize={10} // prevent complete collapse
+          >
             <RecursiveLayout node={child} templateId={templateId} />
           </ResizablePanel>
           {index < node.widgets!.length - 1 && <ResizableHandle withHandle />}
