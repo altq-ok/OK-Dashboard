@@ -64,9 +64,16 @@ pnpm install
 If you don't have any preference, you can copy `.prettierrc` in `my-turborepo`.
 
 ```json
-
+{
+  "trailingComma": "all",
+  "semi": true,
+  "tabWidth": 2,
+  "singleQuote": true,
+  "printWidth": 120,
+  "endOfLine": "auto",
+  "arrowParens": "always"
+}
 ```
-
 
 ## DIY Instructions
 
