@@ -22,10 +22,10 @@ The batch script will create required files under a new directory with the proje
 
 ### Create Next.js application within monorepo (`apps/web`)
 
-Within the project directory, run:
+Within the project apps directory (`apps`), run:
 
 ```bash
-pnpm createn next-app@latest web
+pnpm create next-app@latest web
 ```
 
 Select recommended Next.js defaults if you don't have any particular preference.
@@ -41,15 +41,6 @@ You need to manually update dependencies when you add more shared packages.
   "@repo/ui": "workspace:*",
 ```
 
-Remove `apps/web/pnpm-lock.yaml` and `apps/web/pnpm-workspace.yaml` since they are customised to run as a standalone Next.js application.
-
-Once removed, run below command in the project root directory.
-
-```bash
-# This command will re-generate correct pnpm-lock.yaml and pnpm-workspace.yaml
-pnpm install
-```
-
 Also, you need to add below lines to `pnpm-workspace.yaml` in the root project folder.
 
 ```yaml
@@ -57,6 +48,15 @@ Also, you need to add below lines to `pnpm-workspace.yaml` in the root project f
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+```
+
+Remove `apps/web/pnpm-lock.yaml` and `apps/web/pnpm-workspace.yaml` since they are customised to run as a standalone Next.js application.
+
+Once removed, run below command in the project root directory.
+
+```bash
+# This command will re-generate correct pnpm-lock.yaml and pnpm-workspace.yaml
+pnpm install
 ```
 
 ### Add `.prettierrc`
