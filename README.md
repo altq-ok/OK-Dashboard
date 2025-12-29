@@ -150,4 +150,23 @@ This is a monorepo (i.e. both frontend and backend are in the same repository). 
 
 If they are not common types, types are defined in `types` folder (e.g. `apps/web/types/dashboard.ts`).
 
+## Backend Implementation
+
+Backend can be anything as backend is segregated from frontend, but one example is Fast-API (Python).
+
+If you install `fastapi` and `uvicorn`, you can run it via `turborepo`. `taskiq` would also help run heavy tasks in a different process.
+
+### Install backend packages
+
+Run bellow command to install packages:
+
+```bash
+# Install Python packages
+uv add fastapi uvicorn
+
+# Install npm pakcages
+pnpm add @tanstack/react-query
+```
+
+
 
