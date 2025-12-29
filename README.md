@@ -168,5 +168,11 @@ uv add fastapi uvicorn
 pnpm add @tanstack/react-query
 ```
 
+### Link with frontend
 
+When you want to add a new widget, there will be 3 steps:
+
+1. Define interface(type) in `apps/web/types`. It will enable auto-completion.
+2. Create custom hook in `apps/web/hooks`. Use `useQuery` and encapculate a fetch logic.
+3. Use the defined hook in `widget-slot.tsx`.
 
