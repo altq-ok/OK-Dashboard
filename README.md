@@ -154,7 +154,7 @@ If they are not common types, types are defined in `types` folder (e.g. `apps/we
 
 Backend can be anything as backend is segregated from frontend, but one example is Fast-API (Python).
 
-If you install `fastapi` and `uvicorn`, you can run it via `turborepo`. `taskiq` would also help run heavy tasks in a different process.
+If you install `fastapi` and `uvicorn`, you can run it via `turborepo`.
 
 ### Install backend packages
 
@@ -163,9 +163,6 @@ Run bellow command to install packages:
 ```bash
 # Install Python packages
 uv add fastapi uvicorn
-
-# Install npm pakcages
-pnpm add @tanstack/react-query
 ```
 
 ### Link with frontend
@@ -174,5 +171,4 @@ When you want to add a new widget, there will be 3 steps:
 
 1. Define interface(type) in `apps/web/types`. It will enable auto-completion.
 2. Create custom hook in `apps/web/hooks`. Use `useQuery` and encapculate a fetch logic.
-3. Use the defined hook in `widget-slot.tsx`.
 
