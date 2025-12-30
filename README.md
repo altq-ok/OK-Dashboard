@@ -162,7 +162,7 @@ Run bellow command to install packages:
 
 ```bash
 # Install Python packages
-uv add fastapi uvicorn
+uv add fastapi uvicorn portalocker pandas pyarrow
 ```
 
 ### Run `pnpm dev`
