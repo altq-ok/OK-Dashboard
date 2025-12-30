@@ -10,13 +10,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-import { useHello } from '@/hooks/use-hello';
-
 export function WidgetSlot({ index }: { index: number }) {
   const widgetType = useDashboardStore((state) => state.activeWidgets[index]);
   const setWidget = useDashboardStore((state) => state.setWidget);
-
-  const { data, isLoading, error } = useHello();
 
   return (
     <div className="h-full w-full p-2">
@@ -48,13 +44,6 @@ export function WidgetSlot({ index }: { index: number }) {
 
           {/* Make scrollable when content exists, but fix header => flex-1 */}
           <div className="flex-1 text-sm overflow-auto">
-            {isLoading && <p>Calling Python...</p>}
-            {error && <p className="text-destructive">Error: {error.message}</p>}
-            {data && (
-              <div className="p-2 bg-primary/10 rounded border border-primary/20">
-                🐍 Python says: <span className="font-bold">{data.message}</span>
-              </div>
-            )}
             {widgetType === 'analytics' && <div>Analytics Placeholder</div>}
             {widgetType === 'userList' && <div>Calendar Placeholder</div>}
             {widgetType === 'logs' && <div>Validation Placeholder</div>}
