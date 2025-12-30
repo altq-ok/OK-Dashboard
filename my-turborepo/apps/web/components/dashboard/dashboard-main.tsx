@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useQueryState } from 'nuqs';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { DASHBOARD_TEMPLATES } from '@/lib/layout-templates';
 import { RecursiveLayout } from './recursive-layout';
@@ -13,7 +13,6 @@ export function DashboardMain({ initialLayoutId }: { initialLayoutId: string }) 
 
   const layouts = useDashboardStore((state) => state.layouts);
   const syncWidgetsCount = useDashboardStore((state) => state.syncWidgetsCount);
-  const [mounted, setMounted] = useState(false);
 
   const currentLayout = useMemo(() => {
     return layouts[layoutId] || DASHBOARD_TEMPLATES[layoutId] || DASHBOARD_TEMPLATES['single'];
@@ -27,10 +26,6 @@ export function DashboardMain({ initialLayoutId }: { initialLayoutId: string }) 
     };
     syncWidgetsCount(countSlots(currentLayout));
   }, [layoutId, currentLayout, syncWidgetsCount]);
-
-  // Prevent hydration
-  useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
 
   return (
     <div className="h-full w-full overflow-hidden">

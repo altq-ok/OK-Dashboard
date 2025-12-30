@@ -17,4 +17,4 @@ CACHE_DIR = "~/Documents/Dev/TypeScript/shared/Cache"
 
 @app.get("/api/health")
 async def health_check():
-    return {"message": "Hello from Python API!"
+    return {"message": "Hello from Python API!"}

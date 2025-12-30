@@ -1,10 +1,14 @@
-import { DashboardMain } from '@/components/dashboard/dashboard-main';
+import { DashboardClientGate } from '@/components/dashboard/dashboard-client-gate';
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
 export default async function Page({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
-  const initialLayoutId = params.layout || 'single';
+  let initialLayoutId = params.layout || 'single';
 
-  return <DashboardMain initialLayoutId={initialLayoutId} />;
+  if (Array.isArray(initialLayoutId)) {
+    initialLayoutId = initialLayoutId.at(0) ?? 'single';
+  }
+
+  return <DashboardClientGate initialLayoutId={initialLayoutId} />;
 }
