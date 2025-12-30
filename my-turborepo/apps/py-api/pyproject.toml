@@ -11,3 +11,8 @@ dependencies = [
     "taskiq>=0.12.1",
     "uvicorn>=0.40.0",
 ]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
