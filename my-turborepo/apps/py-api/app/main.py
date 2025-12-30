@@ -13,9 +13,8 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-CACHE_DIR = "~/Documents/Dev/TypeScript/shared/Cache"
+CACHE_DIR = "~/Dev/TypeScript/shared/Cache"
 
 @app.get("/api/health")
 async def health_check():
-    return {"message": "Hello from Python API!",
-            "test": "OK"}
+    return {"message": "Hello from Python API!"}

@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\dev.ps1",
-    "start": "scripts\\start.bat",
+    "dev": "uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload",
+    "start": "uv run uvicorn app.main:app --host 127.0.0.1 --port 8000",
     "type-check": "uv run mypy ."
   }
 }

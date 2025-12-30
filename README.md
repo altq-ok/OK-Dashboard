@@ -165,6 +165,12 @@ Run bellow command to install packages:
 uv add fastapi uvicorn
 ```
 
+### Run `pnpm dev`
+
+Enabling hot reload in both Next.js and Fast API applications is a bit challenging. When `uvicorn --reload` is invoked via `turbo run dev`, the process exits on reload.
+
+While there might be various workarounds, one simple and robust approach is to laucnh the fronend and backend in separate terminals. Run `run-pnpm-dev.bat` which will clean up 3000 and 8000 ports and launch a terminal for each application.
+
 ### Link with frontend
 
 When you want to add a new widget, there will be 3 steps:
