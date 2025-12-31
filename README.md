@@ -88,7 +88,7 @@ While there might be various workarounds, one simple and robust approach is to l
 
 ## TL; DR
 
-While the core components are not that simple, adding a new widget in frontend and a new data type in backend is pretty simple.
+While core components are relatively complex to provide a robust framework, adding a new widget in frontend and a new data type in backend is pretty simple.
 
 1. Add an engine in Python which saves either dataframe or JSON in a shared drive.
 2. Syncer will automatically copy it to your local to minimize network latency.
