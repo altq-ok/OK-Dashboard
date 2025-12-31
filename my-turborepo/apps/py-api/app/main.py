@@ -10,6 +10,7 @@ import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from multiprocessing import Process, Queue
+from os.path import expanduser
 
 from fastapi import FastAPI
 
@@ -18,7 +19,8 @@ from app.core.worker import calc_worker
 logger = logging.getLogger(__name__)
 
 # Configuration
-SHARED_DIR = "~\\Dev\\TypeScript\\Shared"
+home = expanduser("~")
+SHARED_DIR = f"{home}\\Dev\\TypeScript\\Shared"
 USER_NAME = os.getlogin()
 
 # To save under app.state

@@ -47,9 +47,13 @@ def calc_worker(queue: multiprocessing.Queue, shared_dir: str, user_name: str):
             status_mgr.update(task_id, "running", user_name, progress=0, message="Initializing...")
 
             # Run the actual task here
+            def dummy(params: dict):
+                return params
+
             for i in range(1, 11):
                 # Simulated calculation step
                 time.sleep(1)
+                params = dummy(params)
 
                 # Periodic heartbeat update to notify other users of life
                 status_mgr.update(task_id, "running", user_name, progress=i * 10, message=f"Processing step {i}/10...")
