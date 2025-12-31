@@ -132,6 +132,8 @@ pnpm dlx shadcn@latest add navigation-menu
 pnpm dlx shadcn@latest add sonner
 pnpm dlx shadcn@latest add button
 pnpm dlx shadcn@latest add dropdown-menu
+pnpm dlx shadcn@latest add badge
+pnpm dlx shadcn@latest add popover
 ```
 
 ### Original components
