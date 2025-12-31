@@ -44,8 +44,8 @@ class DataManager:
         # Convert to JSON-serializable format
         return df.to_dict(orient="records")
 
-    def get_history(self, task_type: str, target_id: str) -> List[str]:
-        """Lists all available parquet files (versions) for a task."""
+    def get_snapshots(self, task_type: str, target_id: str) -> List[str]:
+        """Lists all available parquet files (snapshots) for a task."""
         task_id = f"{target_id}_{task_type}"
         folder = os.path.join(self.local_root, "snapshots", task_id)
         if not os.path.exists(folder):

@@ -206,11 +206,19 @@ For separation of concerns, infrastructure logic and business logic are separate
 
 `core/worker.py` parses a request (JSON) from frontend, and calls a relevant engine from `services/*`.
 
+- `main.py` (FastAPI process) holds both `DataManager` and `StatusManager` with local directory, which mirros a shared directory, to get updates.
+- `worker.py` holds `StatusManager` to update stauts in the shared directory. Any engine will publish parquet to the shared directory (calculation results etc.).
+- `syncer.py` will copy status and parquet(data) from the shared directory to the local directory to minimize network latency when accessing data from UI.
+
 ### Link with frontend
 
-When you want to add a new widget, there will be 3 steps:
+As per the above structure, there are 2 endpoints for the backend API.
 
-1. Define interface(type) in `apps/web/types`. It will enable auto-completion.
-2. Create custom hook in `apps/web/hooks`. Use `useQuery` and encapculate a fetch logic.
+1. **status**: frontend does pollilng every 2 seconds to get the current status.
+2. **data(parquet)**: frontend gets data once status changed to 'done'.
+
+
+
+
 
 

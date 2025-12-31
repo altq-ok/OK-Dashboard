@@ -84,3 +84,19 @@ class StatusManager:
         except Exception as e:
             logger.error(f"Error reading status for {task_id}: {e}")
             return None
+
+    def get_all_statuses(self) -> list[dict]:
+        """
+        Scans the 'status/' directory and returns a list of all current task statuses.
+        """
+        statuses = []
+        if not os.path.exists(self.status_dir):
+            return []
+
+        for filename in os.listdir(self.status_dir):
+            if filename.endswith(".json"):
+                task_id = filename[:-5]  # Remove .json
+                status = self.get_status(task_id)
+                if status:
+                    statuses.append(status)
+        return statuses
