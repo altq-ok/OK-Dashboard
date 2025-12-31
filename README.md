@@ -86,6 +86,15 @@ Enabling hot reload in both Next.js and FastAPI applications is a bit challengin
 
 While there might be various workarounds, one simple and robust approach is to laucnh the fronend and backend in separate terminals. Run `run-pnpm-dev.bat` which will clean up 3000 and 8000 ports and launch a terminal for each application.
 
+## TL; DR
+
+While the core components are not that simple, adding a new widget in frontend and a new data type in backend is pretty simple.
+
+1. Add an engine in Python which saves either dataframe or JSON in a shared drive.
+2. Syncer will automatically copy it to your local to minimize network latency.
+3. Frontend automatically picks up any changes in the local and send it to a widget.
+4. Add a widget to display the communicated data.
+
 ## Frontend Implementation
 
 If you want to build a similar dashboard from scratch, you can follow below instructions and customise files in `apps/web`.
@@ -174,6 +183,12 @@ The same structures need to be defined in below folders to enable auto-completio
 
 - **Pydantic models**: `apps/py-api/schemas/*`
 - **Typescript interfaces**: `apps/web/types/*`
+
+### Widget registry pattern
+
+To add new widgets, you don't need to touch the core logics.
+
+Add a new widget under `apps/web/components/dashboard/widgets/*-widget.tsx` and register it to `apps/web/types/dashboard.ts` and `apps/web/lib/widget-registry.ts`.
 
 ## Backend Implementation
 
