@@ -5,14 +5,15 @@ Handles the lifecycle of the background worker process and provides
 REST endpoints for the Next.js frontend to interact with the calculation engine.
 """
 
+import logging
 import os
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from multiprocessing import Process, Queue
 
 from fastapi import FastAPI
+
 from app.core.worker import calc_worker
-from datetime import datetime, timezone
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -95,4 +96,3 @@ async def health_check():
         "user": USER_NAME,
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
     }
-

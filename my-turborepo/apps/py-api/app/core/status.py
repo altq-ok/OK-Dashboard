@@ -1,9 +1,10 @@
 import json
+import logging
 import os
 from datetime import datetime
 from typing import Optional
+
 import portalocker
-import logging
 
 logger = logging.getLogger(__name__)
 
