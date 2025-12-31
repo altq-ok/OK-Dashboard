@@ -10,6 +10,7 @@ const API_BASE = 'http://localhost:8000'; // FastAPI's URL
 export function useTask(targetId: string, taskType: string, version: string = 'latest') {
   const queryClient = useQueryClient();
   const prevStatusRef = useRef<string | undefined>(undefined);
+  const isInitialLoad = useRef(true); // To prevent recurring toast
 
   // Status polling every 2 seconds
   const { data: status } = useQuery<TaskStatus>({
@@ -82,6 +83,15 @@ export function useTask(targetId: string, taskType: string, version: string = 'l
   // Toast notification
   useEffect(() => {
     if (!status) return;
+
+    // On initial load, sync status only and don't show toast
+    if (isInitialLoad.current) {
+      isInitialLoad.current = false;
+      prevStatusRef.current = status.status;
+      return;
+    }
+
+    // show toast when status changes
     if (prevStatusRef.current !== status.status) {
       if (status.status === 'done') {
         toast.success(`${taskType} for ${targetId} completed`);

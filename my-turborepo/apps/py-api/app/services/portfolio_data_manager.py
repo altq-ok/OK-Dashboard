@@ -20,6 +20,8 @@ class PortfolioDataManager:
         import numpy as np
         import pandas as pd
 
+        time.sleep(10)
+
         self.pd = pd
         self.np = np
         self.shared_root = pathlib.Path(shared_dir)
@@ -37,6 +39,10 @@ class PortfolioDataManager:
         """
         target_id = params.get("target_id") or "ALL"
         task_type = params.get("task_type", "pricing")
+
+        print(f"Target ID = {target_id}")
+        print(f"Task Type = {task_type}")
+        print(f"params = {params}")
 
         # 1. Resolve output path: snapshots/{target_id}_{task_type}/
         task_id = f"{target_id}_{task_type}"

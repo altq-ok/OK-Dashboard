@@ -10,13 +10,17 @@ import { LayoutNode } from '@/types/dashboard';
 
 export function DashboardMain({ initialLayoutId }: { initialLayoutId: string }) {
   const [layoutId] = useQueryState('layout', { defaultValue: initialLayoutId });
-
   const layouts = useDashboardStore((state) => state.layouts);
   const syncWidgetsCount = useDashboardStore((state) => state.syncWidgetsCount);
 
   const currentLayout = useMemo(() => {
     return layouts[layoutId] || DASHBOARD_TEMPLATES[layoutId] || DASHBOARD_TEMPLATES['single'];
   }, [layouts, layoutId]);
+
+  /* Not only layoutId but detect change in currentLayout - enable immediate layout reset */
+  const layoutKey = useMemo(() => {
+    return `${layoutId}-${JSON.stringify(currentLayout)}`;
+  }, [layoutId, currentLayout]);
 
   // Count number of slots and sync
   useEffect(() => {
@@ -29,7 +33,7 @@ export function DashboardMain({ initialLayoutId }: { initialLayoutId: string }) 
 
   return (
     <div className="h-full w-full overflow-hidden">
-      <RecursiveLayout key={layoutId} node={currentLayout} templateId={layoutId} />
+      <RecursiveLayout key={layoutKey} node={currentLayout} templateId={layoutId} />
     </div>
   );
 }

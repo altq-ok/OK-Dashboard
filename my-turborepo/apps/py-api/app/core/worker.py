@@ -8,7 +8,7 @@ from app.services.portfolio_data_manager import PortfolioDataManager
 logger = logging.getLogger(__name__)
 
 
-def calc_worker(queue: multiprocessing.Queue, shared_dir: str, user_name: str):
+def calc_worker(queue: multiprocessing.Queue, shared_dir: str, user_name: str, ready_event):
     """
     Main loop for the persistent calculation worker process.
 
@@ -29,6 +29,7 @@ def calc_worker(queue: multiprocessing.Queue, shared_dir: str, user_name: str):
     }
     # Initialize own StatusManager for this worker's process
     status_mgr = StatusManager(shared_dir)
+    ready_event.set()  # Tell that initialization of Worker is complete
     logger.info("Worker: Initialization complete. Waiting for tasks...")
 
     while True:

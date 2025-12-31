@@ -33,7 +33,7 @@ export function Header() {
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <LayoutResetButton />
           <LayoutPicker />
           <ToggleThemeButton />

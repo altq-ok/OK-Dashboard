@@ -63,10 +63,6 @@ export function DataControlCenter() {
             const task = taskHooks[type as keyof typeof taskHooks];
             const isRunning = task.status?.status === 'running';
             const currentVersion = versions[type];
-
-            // Get the latest snapshot's updated time
-            const latestTimestamp = task.snapshots?.[0] ? formatSnapshotTimestamp(task.snapshots[0]) : 'No data';
-
             return (
               <div
                 key={type}

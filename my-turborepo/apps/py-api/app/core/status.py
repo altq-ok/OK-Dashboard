@@ -87,7 +87,8 @@ class StatusManager:
 
     def get_all_statuses(self) -> list[dict]:
         """
-        Scans the 'status/' directory and returns a list of all current task statuses.
+        Scans the status directory and returns all task statuses
+        sorted by last_heartbeat (newest first).
         """
         statuses = []
         if not os.path.exists(self.status_dir):
@@ -99,4 +100,6 @@ class StatusManager:
                 status = self.get_status(task_id)
                 if status:
                     statuses.append(status)
-        return statuses
+
+        # Sort by last_heartbeat (decending, new => old)
+        return sorted(statuses, key=lambda x: x.get("last_heartbeat", ""), reverse=True)
