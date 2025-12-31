@@ -25,8 +25,9 @@ def calc_worker(queue: multiprocessing.Queue, shared_dir: str, user_name: str):
 
     logger.info(f"Worker[{os.getpid()}]: Intializing engines...")
     engines = {
-        "portfolio": PortfolioDataManager(shared_dir=shared_dir),
+        "event": PortfolioDataManager(shared_dir=shared_dir),
     }
+    # Initialize own StatusManager for this worker's process
     status_mgr = StatusManager(shared_dir)
     logger.info("Worker: Initialization complete. Waiting for tasks...")
 
@@ -50,14 +51,15 @@ def calc_worker(queue: multiprocessing.Queue, shared_dir: str, user_name: str):
                 raise ValueError(f"Unknown task_type: {task_type}")
 
             # Notify start via status manager
-            status_mgr.update(task_id, "running", user_name, progress=0, message="Initializing...")
+            status_mgr.update(task_id, "running", user_name, params=params, progress=0, message="Initializing...")
 
             # Run task
-            result_path = engine.run(params)
+            # No need to save result path here as the dashboard should refer to the latest (or a specific version manually)
+            _ = engine.run(params)
 
             # Notify completion via status manager
-            status_mgr.update(task_id, "done", user_name, progress=100, message="Task finished.")
+            status_mgr.update(task_id, "done", user_name, params=params, progress=100, message="Task finished.")
 
         except Exception as e:
             # Catch and broadcast errors to all users via the shared status file
-            status_mgr.update(task_id, "failed", user_name, message=f"Error: {str(e)}")
+            status_mgr.update(task_id, "failed", user_name, params=params, message=f"Error: {str(e)}")

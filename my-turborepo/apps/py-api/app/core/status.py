@@ -32,7 +32,7 @@ class StatusManager:
     def _get_path(self, task_id: str) -> str:
         return os.path.join(self.status_dir, f"{task_id}.json")
 
-    def update(self, task_id: str, status: str, user: str, progress: float = 0, message: str = ""):
+    def update(self, task_id: str, status: str, user: str, params: dict, progress: float = 0, message: str = ""):
         """
         Updates the task progress and writes it to the shared JSON file.
         The lock is automatically released by the OS even if the process crashes.
@@ -44,6 +44,7 @@ class StatusManager:
             task_id (str): Unique identifier for the calculation task.
             status (str): Current state, e.g., 'running', 'done', 'failed'.
             user (str): Name of the user/PC executing the task.
+            params (dict): Extra parameters for the task
             progress (float): Completion percentage (0.0 to 100.0).
             message (str): Human-readable message for UI display.
         """
@@ -55,12 +56,15 @@ class StatusManager:
             "progress": progress,
             "message": message,
             "last_heartbeat": datetime.now().isoformat(),
+            "params": params,
         }
 
         try:
-            # Open with 'r+' or 'w' and use portalocker to prevent concurrent access
-            with open(path, "w", encoding="utf-8") as f:
+            # Open with 'r+' or 'a+' and use portalocker to prevent concurrent access
+            with open(path, "a+", encoding="utf-8") as f:
                 portalocker.lock(f, portalocker.LOCK_EX)  # Exclusive lock
+                f.seek(0)
+                f.truncate()
                 json.dump(data, f, indent=2, ensure_ascii=False)
         except Exception as e:
             logger.error(f"Error updating status for {task_id}: {e}")
