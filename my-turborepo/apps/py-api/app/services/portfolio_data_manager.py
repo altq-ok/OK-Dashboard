@@ -20,7 +20,7 @@ class PortfolioDataManager:
         import numpy as np
         import pandas as pd
 
-        time.sleep(10)
+        time.sleep(5)  # Simulate heavy imports
 
         self.pd = pd
         self.np = np
@@ -43,6 +43,8 @@ class PortfolioDataManager:
         print(f"Target ID = {target_id}")
         print(f"Task Type = {task_type}")
         print(f"params = {params}")
+
+        time.sleep(5)  # Simulate heavy task
 
         # 1. Resolve output path: snapshots/{target_id}_{task_type}/
         task_id = f"{target_id}_{task_type}"

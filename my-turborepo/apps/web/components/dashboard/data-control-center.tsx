@@ -1,18 +1,33 @@
 'use client';
 
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTask } from '@/hooks/use-task';
 import { useDashboardParams, TaskType } from '@/hooks/use-dashboard-params';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
-import { RefreshCw, History, Check, Database, ChevronDown, Loader2 } from 'lucide-react';
+import {
+  RefreshCw,
+  History,
+  Check,
+  Database,
+  ChevronDown,
+  Loader2,
+  Globe,
+  ShieldAlert,
+  Landmark,
+  Settings2,
+} from 'lucide-react';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { formatSnapshotTimestamp } from '@/lib/utils';
+import { cn, formatSnapshotTimestamp } from '@/lib/utils';
+import { TaskStatus } from '@/types/task';
 
 export function DataControlCenter() {
   const { targetId, setVersion, versions } = useDashboardParams();
@@ -22,8 +37,6 @@ export function DataControlCenter() {
     { label: 'Pricing', type: 'pricing' },
     { label: 'Event', type: 'event' },
     { label: 'Guideline', type: 'guideline' },
-    // If you want to add another task
-    // { label: 'Risk', type: 'risk' },
   ];
 
   // All task monitoring
@@ -33,8 +46,21 @@ export function DataControlCenter() {
     guideline: useTask(targetId, 'guideline', versions.guideline),
   };
 
-  // Check if any task is running
-  const isAnyTaskRunning = Object.values(taskHooks).some((t) => t.status?.status === 'running');
+  // Manage extra parameters for tasks
+  const [reloadParams, setReloadParams] = useState<string[]>([]);
+
+  const handleUpdate = (type: keyof typeof taskHooks) => {
+    const extraParams = {
+      reload: reloadParams,
+    };
+    taskHooks[type].run({
+      extra_params: extraParams,
+    });
+  };
+
+  // Check if any task is pending or running
+  const { data: allStatuses } = useQuery<TaskStatus[]>({ queryKey: ['tasks', 'global-status'] });
+  const isAnyTaskRunning = allStatuses?.some((s) => s.status === 'running' || s.status == 'pending');
 
   return (
     <Popover>
@@ -49,7 +75,6 @@ export function DataControlCenter() {
           <ChevronDown className="h-3 w-3 opacity-50" />
         </Button>
       </PopoverTrigger>
-
       <PopoverContent align="end" className="w-80 p-0 shadow-2xl border-muted-foreground/20">
         <div className="p-4 bg-muted/30">
           <h4 className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-2">
@@ -90,7 +115,7 @@ export function DataControlCenter() {
                     size="sm"
                     variant={isRunning ? 'ghost' : 'outline'}
                     className={`h-8 w-8 p-0 ${isRunning ? 'text-blue-500' : ''}`}
-                    onClick={() => task.run()}
+                    onClick={() => handleUpdate(type)}
                     disabled={isRunning}
                   >
                     <RefreshCw className={`h-4 w-4 ${isRunning ? 'animate-spin' : ''}`} />
@@ -127,6 +152,65 @@ export function DataControlCenter() {
               </div>
             );
           })}
+        </div>
+
+        <Separator />
+
+        {/* --- Reload Params --- */}
+        <div className="p-4 bg-muted/20 border-t space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <h4 className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest flex items-center gap-2">
+              <Settings2 className="h-3 w-3" /> Reload Options
+            </h4>
+            <span className="text-[9px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+              {reloadParams.length} selected
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { id: 'benchmark', label: 'Benchmark', icon: Globe, desc: 'Relative performance' },
+              { id: 'risk', label: 'Risk Factors', icon: ShieldAlert, desc: 'Greeks and VaR' },
+              { id: 'intl', label: 'Intl Markets', icon: Landmark, desc: 'Global correlation' },
+              { id: 'raw', label: 'Raw Data', icon: Database, desc: 'Export source' },
+            ].map((item) => {
+              const isSelected = reloadParams.includes(item.id);
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setReloadParams((prev) =>
+                      prev.includes(item.id) ? prev.filter((i) => i !== item.id) : [...prev, item.id],
+                    );
+                  }}
+                  className={cn(
+                    'relative flex flex-col items-start gap-2 p-3 rounded-xl border-2 transition-all duration-200 text-left',
+                    isSelected
+                      ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/40 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] translate-y-[1px]'
+                      : 'border-transparent bg-card hover:border-muted-foreground/20 shadow-sm',
+                  )}
+                >
+                  <div className="flex w-full items-center justify-between">
+                    <item.icon className={cn('h-3.5 w-3.5', isSelected ? 'text-blue-500' : 'text-muted-foreground')} />
+                    {isSelected && (
+                      <Check className="h-3 w-3 text-blue-500 stroke-[3px] animate-in zoom-in duration-300" />
+                    )}
+                  </div>
+                  <div>
+                    <p
+                      className={cn(
+                        'text-[10px] font-bold',
+                        isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-foreground',
+                      )}
+                    >
+                      {item.label}
+                    </p>
+                    <p className="text-[9px] text-muted-foreground leading-tight">{item.desc}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </PopoverContent>
     </Popover>

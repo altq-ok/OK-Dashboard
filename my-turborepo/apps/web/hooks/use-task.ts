@@ -1,7 +1,7 @@
 'use client';
 
+import { useEffect, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { TaskStatus, TaskParams } from '@/types/task';
 
@@ -12,22 +12,27 @@ export function useTask(targetId: string, taskType: string, version: string = 'l
   const prevStatusRef = useRef<string | undefined>(undefined);
   const isInitialLoad = useRef(true); // To prevent recurring toast
 
-  // Status polling every 2 seconds
-  const { data: status } = useQuery<TaskStatus>({
-    queryKey: ['task', targetId, taskType, 'status'],
-    queryFn: async () => {
-      const res = await fetch(`${API_BASE}/tasks/${targetId}/${taskType}/status`);
-      if (!res.ok) throw new Error('Status not found');
-      return res.json();
-    },
-    // Keep polling only when status = 'running' or 'pending'
-    refetchInterval: (query) => {
-      const s = query.state.data?.status;
-      return s === 'running' || s === 'pending' ? 2000 : false;
-    },
-    // Execute only when targetId or taskType is available
-    enabled: !!targetId && !!taskType,
+  // global-task-monitor has this status information already
+  const { data: allStatuses } = useQuery<TaskStatus[]>({
+    queryKey: ['tasks', 'global-status'],
+    enabled: false, // Use cache from GlobalTaskMonitor to get status
   });
+
+  const status = useMemo(() => {
+    if (!allStatuses) return undefined;
+
+    const relevantRunning = allStatuses.find(
+      (s) =>
+        s.params.task_type === taskType &&
+        s.status === 'running' &&
+        (s.params.target_id === targetId || s.params.target_id === 'ALL'),
+    );
+    if (relevantRunning) return relevantRunning;
+
+    return allStatuses
+      .filter((s) => s.params.target_id === targetId && s.params.task_type === taskType)
+      .sort((a, b) => new Date(b.last_heartbeat).getTime() - new Date(a.last_heartbeat).getTime())[0];
+  }, [allStatuses, targetId, taskType]);
 
   // Get data when status = 'done' or a snapshot is specified
   const { data: result, isLoading: isDataLoading } = useQuery({
