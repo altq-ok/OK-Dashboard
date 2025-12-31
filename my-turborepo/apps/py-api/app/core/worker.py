@@ -1,9 +1,9 @@
 import logging
 import multiprocessing
 import os
-import time
 
 from app.core.status import StatusManager
+from app.services.portfolio_data_manager import PortfolioDataManager
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +23,10 @@ def calc_worker(queue: multiprocessing.Queue, shared_dir: str, user_name: str):
         user_name (str): Identifier of the current PC user.
     """
 
-    # Heavy imports should be placed here to keep them persistent in memory.
-    logger.info(f"Worker[{os.getpid()}]: Warming up heavy libraries...")
-    # import blpapi, pandas as pd, etc.
-    time.sleep(2)  # Simulating library load time
-
+    logger.info(f"Worker[{os.getpid()}]: Intializing engines...")
+    engines = {
+        "portfolio": PortfolioDataManager(shared_dir=shared_dir),
+    }
     status_mgr = StatusManager(shared_dir)
     logger.info("Worker: Initialization complete. Waiting for tasks...")
 
@@ -41,22 +40,20 @@ def calc_worker(queue: multiprocessing.Queue, shared_dir: str, user_name: str):
 
         task_id = task_info["task_id"]
         params = task_info.get("params", {})
+        task_type = params.get("task_type")
 
         try:
+            # Get engine dynamically
+            engine = engines.get(task_type)
+
+            if not engine:
+                raise ValueError(f"Unknown task_type: {task_type}")
+
             # Notify start via status manager
             status_mgr.update(task_id, "running", user_name, progress=0, message="Initializing...")
 
-            # Run the actual task here
-            def dummy(params: dict):
-                return params
-
-            for i in range(1, 11):
-                # Simulated calculation step
-                time.sleep(1)
-                params = dummy(params)
-
-                # Periodic heartbeat update to notify other users of life
-                status_mgr.update(task_id, "running", user_name, progress=i * 10, message=f"Processing step {i}/10...")
+            # Run task
+            result_path = engine.run(params)
 
             # Notify completion via status manager
             status_mgr.update(task_id, "done", user_name, progress=100, message="Task finished.")

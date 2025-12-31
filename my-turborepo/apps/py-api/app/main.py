@@ -16,7 +16,9 @@ from fastapi import FastAPI
 
 from app.core.worker import calc_worker
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
 
 # Configuration
 home = expanduser("~")
@@ -69,7 +71,7 @@ async def run_task(task_id: str):
     """
     Pass a request by using task_queue created with lifespan
     """
-    app.state.task_queue.put({"task_id": task_id, "params": {"fund_id": "AAPL"}})
+    app.state.task_queue.put({"task_id": task_id, "params": {"target_id": "AAPL"}})
     return {"status": "accepted", "task_id": task_id}
 
 
@@ -89,6 +91,20 @@ async def stop_worker():
     app.state.worker_process.start()
 
     return {"status": "restarted", "new_pid": app.state.worker_process.pid}
+
+
+@app.get("/tasks/{target_id}/{task_type}/data")
+async def get_task_data(target_id: str, task_type: str):
+    """
+    Returns the latest calculation results for a task.
+    Next.js will call this after receiving a 'done' status.
+    """
+    data_manager = app.state.data_manager
+    try:
+        results = data_manager.get_latest_data(task_type, target_id)
+        return {"data": results}
+    except Exception as e:
+        return {"error": str(e)}, 500
 
 
 # For health check
