@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { useDashboardParams } from '@/hooks/use-dashboard-params';
 import { useTask } from '@/hooks/use-task';
-import { WIDGET_TASK_MAP } from '@/lib/widget-data-map';
+import { WIDGET_REGISTRY, WIDGET_TASK_MAP } from '@/lib/widget-registry';
+import { WidgetType } from '@/types/dashboard';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +17,7 @@ import {
 export function WidgetSlot({ index }: { index: number }) {
   const widgetType = useDashboardStore((state) => state.activeWidgets[index]);
   const setWidget = useDashboardStore((state) => state.setWidget);
+  const widgetConfig = widgetType ? WIDGET_REGISTRY[widgetType] : null;
 
   const { targetId, versions } = useDashboardParams();
 
@@ -23,8 +25,11 @@ export function WidgetSlot({ index }: { index: number }) {
   const taskType = widgetType ? WIDGET_TASK_MAP[widgetType] : null;
   const version = taskType ? versions[taskType as keyof typeof versions] : 'latest';
 
+  // set targetId = 'ALL' when widgetType = 'home'
+  const effectiveTargetId = widgetType === 'home' ? 'ALL' : targetId;
+
   // Load task data
-  const { status, result, isDataLoading } = useTask(targetId, taskType || '', version);
+  const { status, result } = useTask(effectiveTargetId, taskType || '', version);
 
   if (!widgetType) {
     return (
@@ -36,10 +41,16 @@ export function WidgetSlot({ index }: { index: number }) {
                 <Plus className="h-4 w-4" /> Select Widget
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setWidget(index, 'analytics')}>Analytics</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setWidget(index, 'userList')}>Calendar</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setWidget(index, 'logs')}>Validation</DropdownMenuItem>
+            <DropdownMenuContent align="center" className="w-48">
+              {Object.entries(WIDGET_REGISTRY).map(([key, config]) => {
+                const Icon = config.icon;
+                return (
+                  <DropdownMenuItem key={key} onClick={() => setWidget(index, key as WidgetType)} className="gap-2">
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    <span>{config.label}</span>
+                  </DropdownMenuItem>
+                );
+              })}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -48,6 +59,7 @@ export function WidgetSlot({ index }: { index: number }) {
   }
 
   const isRunning = status?.status === 'running';
+  const shouldDim = isRunning && !widgetConfig?.disableOpacityOnUpdate;
 
   return (
     <div className="h-full w-full p-2">
@@ -70,24 +82,9 @@ export function WidgetSlot({ index }: { index: number }) {
 
         {/* Content Section */}
         <div
-          className={`flex-1 text-sm overflow-auto transition-opacity duration-300 ${isRunning ? 'opacity-50' : 'opacity-100'}`}
+          className={`flex-1 text-sm overflow-auto transition-opacity duration-300 ${shouldDim ? 'opacity-50' : 'opacity-100'}`}
         >
-          {isDataLoading ? (
-            <div className="flex h-full w-full items-center justify-center text-muted-foreground text-xs">
-              Loading Snapshot...
-            </div>
-          ) : result ? (
-            <div className="animate-in fade-in duration-500">
-              {/* Display data component here */}
-              {widgetType === 'analytics' && <pre>{JSON.stringify(result, null, 2)}</pre>}
-              {widgetType === 'userList' && <div>Calendar Data ready.</div>}
-              {widgetType === 'logs' && <div>Validation Logs ready.</div>}
-            </div>
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-muted-foreground text-xs">
-              No snapshot data found for {targetId}
-            </div>
-          )}
+          {widgetConfig && <widgetConfig.component data={result} status={status} targetId={effectiveTargetId} />}
         </div>
       </div>
     </div>

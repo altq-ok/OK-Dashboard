@@ -134,6 +134,7 @@ pnpm dlx shadcn@latest add button
 pnpm dlx shadcn@latest add dropdown-menu
 pnpm dlx shadcn@latest add badge
 pnpm dlx shadcn@latest add popover
+pnpm dlx shadcn@latest add card
 ```
 
 ### Original components
@@ -218,9 +219,5 @@ As per the above structure, there are 2 endpoints for the backend API.
 
 1. **status**: frontend does pollilng every 2 seconds to get the current status.
 2. **data(parquet)**: frontend gets data once status changed to 'done'.
-
-
-
-
 
 

@@ -1,5 +1,5 @@
 // Available widget types
-export type WidgetType = 'analytics' | 'userList' | 'logs' | 'settings';
+export type WidgetType = 'home' | 'analytics' | 'userList' | 'logs' | 'settings';
 
 // Structure of layout
 // Dispaly if type = widget; Run another search step if type = group
