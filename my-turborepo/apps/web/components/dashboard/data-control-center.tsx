@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useTask } from '@/hooks/use-task';
 import { useDashboardParams, TaskType } from '@/hooks/use-dashboard-params';
 import { Button } from '@/components/ui/button';
@@ -27,7 +26,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn, formatSnapshotTimestamp } from '@/lib/utils';
-import { TaskStatus } from '@/types/task';
+import { useAllStatuses } from '@/hooks/use-all-statuses';
 
 export function DataControlCenter() {
   const { targetId, setVersion, versions } = useDashboardParams();
@@ -59,7 +58,7 @@ export function DataControlCenter() {
   };
 
   // Check if any task is pending or running
-  const { data: allStatuses } = useQuery<TaskStatus[]>({ queryKey: ['tasks', 'global-status'] });
+  const { data: allStatuses } = useAllStatuses();
   const isAnyTaskRunning = allStatuses?.some((s) => s.status === 'running' || s.status == 'pending');
 
   return (
@@ -168,11 +167,12 @@ export function DataControlCenter() {
           </div>
 
           <div className="grid grid-cols-2 gap-2">
+            {/* id will be passed as value of extraParams */}
             {[
-              { id: 'benchmark', label: 'Benchmark', icon: Globe, desc: 'Relative performance' },
-              { id: 'risk', label: 'Risk Factors', icon: ShieldAlert, desc: 'Greeks and VaR' },
-              { id: 'intl', label: 'Intl Markets', icon: Landmark, desc: 'Global correlation' },
-              { id: 'raw', label: 'Raw Data', icon: Database, desc: 'Export source' },
+              { id: 'bbg', label: 'Bloomberg', icon: Globe, desc: 'Market data' },
+              { id: 'oms', label: 'OMS', icon: ShieldAlert, desc: 'Positions' },
+              { id: 'odbc', label: 'ODBC', icon: Database, desc: 'Positions' },
+              { id: 'db', label: 'Database', icon: Landmark, desc: 'Internal database' },
             ].map((item) => {
               const isSelected = reloadParams.includes(item.id);
               return (
@@ -186,7 +186,7 @@ export function DataControlCenter() {
                   className={cn(
                     'relative flex flex-col items-start gap-2 p-3 rounded-xl border-2 transition-all duration-200 text-left',
                     isSelected
-                      ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/40 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] translate-y-[1px]'
+                      ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/40 shadow-[inset_0_2px_4px_rgba(0,0,0,0.1)] translate-y-px'
                       : 'border-transparent bg-card hover:border-muted-foreground/20 shadow-sm',
                   )}
                 >

@@ -3,7 +3,8 @@
 import { useEffect, useRef, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { TaskStatus, TaskParams } from '@/types/task';
+import { TaskParams } from '@/types/task';
+import { useAllStatuses } from '@/hooks/use-all-statuses';
 
 const API_BASE = 'http://localhost:8000'; // FastAPI's URL
 
@@ -11,12 +12,7 @@ export function useTask(targetId: string, taskType: string, version: string = 'l
   const queryClient = useQueryClient();
   const prevStatusRef = useRef<string | undefined>(undefined);
   const isInitialLoad = useRef(true); // To prevent recurring toast
-
-  // global-task-monitor has this status information already
-  const { data: allStatuses } = useQuery<TaskStatus[]>({
-    queryKey: ['tasks', 'global-status'],
-    enabled: false, // Use cache from GlobalTaskMonitor to get status
-  });
+  const { data: allStatuses } = useAllStatuses();
 
   const status = useMemo(() => {
     if (!allStatuses) return undefined;

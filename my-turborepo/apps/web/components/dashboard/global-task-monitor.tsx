@@ -13,21 +13,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useWorkerControl } from '@/hooks/use-worker-control';
-import { TaskStatus } from '@/types/task';
+import { useAllStatuses } from '@/hooks/use-all-statuses';
 
 export function GlobalTaskMonitor() {
   const { restartWorker, isRestarting } = useWorkerControl();
 
   // Monitor all tasks every 5 seconds
-  const { data: tasks } = useQuery<TaskStatus[]>({
-    queryKey: ['tasks', 'global-status'],
-    queryFn: async () => {
-      const res = await fetch('http://localhost:8000/tasks/status');
-      if (!res.ok) return [];
-      return res.json();
-    },
-    refetchInterval: 5000,
-  });
+  const { data: tasks } = useAllStatuses();
 
   // Check if Worker is ready
   const { data: workerStatus } = useQuery({
