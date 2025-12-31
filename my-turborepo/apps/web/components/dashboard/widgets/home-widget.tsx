@@ -1,126 +1,143 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useEffect, useState } from 'react';
+import { Globe, Activity, AlertCircle, Cpu, Clock } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useAllStatuses } from '@/hooks/use-all-statuses';
-import { Globe, AlertTriangle, Calendar, Cpu, Activity } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { WidgetProps } from '@/lib/widget-registry';
 
-// World clocks
-const LOCATIONS = [
-  { city: 'Tokyo', zone: 'Asia/Tokyo', flag: '🇯🇵', market: 'TSE' },
-  { city: 'London', zone: 'Europe/London', flag: '🇬🇧', market: 'LSE' },
-  { city: 'New York', zone: 'America/New_York', flag: '🇺🇸', market: 'NYSE' },
+// 設定: 表示する都市とマーケット情報
+const MARKETS = [
+  { city: 'Tokyo', zone: 'Asia/Tokyo', code: 'TSE', color: 'from-red-500/20' },
+  { city: 'London', zone: 'Europe/London', code: 'LSE', color: 'from-blue-500/20' },
+  { city: 'New York', zone: 'America/New_York', code: 'NYSE', color: 'from-emerald-500/20' },
 ];
 
-export function HomeWidget() {
-  const { data: allStatuses } = useAllStatuses();
-  const [times, setTimes] = useState<Record<string, string>>({});
+export function HomeWidget({ data, status, targetId }: WidgetProps) {
+  const [now, setNow] = useState(new Date());
 
-  // Update clock every second
+  // 1秒ごとに時刻を更新
   useEffect(() => {
-    const timer = setInterval(() => {
-      const newTimes: Record<string, string> = {};
-      LOCATIONS.forEach((loc) => {
-        newTimes[loc.city] = new Intl.DateTimeFormat('en-US', {
-          timeZone: loc.zone,
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false,
-        }).format(new Date());
-      });
-      setTimes(newTimes);
-    }, 1000);
+    const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Summary (should count from Parquet but guess from status for now)
-  const alertCount = allStatuses?.filter((s) => s.status === 'failed').length || 0;
-  const runningCount = allStatuses?.filter((s) => s.status === 'running').length || 0;
+  // 計算中のタスク数などを取得（statusがALL/summaryを想定）
+  // もし status が単一のオブジェクトなら、その中の progress 等を表示
+  const runningTasksCount = status?.status === 'running' ? 1 : 0;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-6 animate-in fade-in duration-700">
+    <div className="p-1 space-y-6 animate-in fade-in duration-700">
       {/* --- Section 1: World Clocks --- */}
-      <Card className="md:col-span-2 shadow-md border-muted-foreground/10 bg-linear-to-br from-background to-muted/20">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-sm font-bold flex items-center gap-2">
-            <Globe className="h-4 w-4 text-blue-500" /> World Markets
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-4">
-          {LOCATIONS.map((loc) => (
-            <div key={loc.city} className="flex flex-col items-center p-3 rounded-xl bg-background/50 border shadow-sm">
-              <span className="text-2xl mb-1">{loc.flag}</span>
-              <span className="text-[10px] uppercase font-bold text-muted-foreground">{loc.city}</span>
-              <span className="text-xl font-mono font-bold tracking-tighter">{times[loc.city] || '--:--:--'}</span>
-              <Badge variant="outline" className="mt-2 text-[9px] h-4">
-                {loc.market} • <span className="text-green-500 ml-1">OPEN</span>
-              </Badge>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {MARKETS.map((m) => {
+          const timeStr = now.toLocaleTimeString('en-US', {
+            timeZone: m.zone,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+          });
 
-      {/* --- Section 2: Quick Metrics --- */}
-      <div className="space-y-6">
-        {/* Alerts */}
-        <Card className="border-l-4 border-l-red-500 shadow-sm">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase">Guideline Alerts</p>
-              <h3 className="text-2xl font-bold text-red-600">{alertCount}</h3>
-            </div>
-            <div className="bg-red-100 p-2 rounded-full">
-              <AlertTriangle className="text-red-600 h-5 w-5" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Events */}
-        <Card className="border-l-4 border-l-blue-500 shadow-sm">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase">Today&apos;s Events</p>
-              <h3 className="text-2xl font-bold text-blue-600">12</h3>
-            </div>
-            <div className="bg-blue-100 p-2 rounded-full">
-              <Calendar className="text-blue-600 h-5 w-5" />
-            </div>
-          </CardContent>
-        </Card>
+          return (
+            <Card
+              key={m.city}
+              className={cn('border-none bg-gradient-to-br to-background shadow-sm overflow-hidden', m.color)}
+            >
+              <CardContent className="p-4 flex flex-col items-center justify-center space-y-1">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Clock className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">
+                    {m.city} / {m.code}
+                  </span>
+                </div>
+                <div className="text-2xl font-mono font-bold tracking-tighter">{timeStr}</div>
+                <div className="flex items-center gap-1.5 pt-1">
+                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[9px] font-medium text-emerald-600 dark:text-emerald-400">MARKET OPEN</span>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
-      {/* --- Section 3: System Status (Fancy Monitor) --- */}
-      <Card className="md:col-span-3 bg-slate-950 text-slate-50 overflow-hidden relative border-none">
-        <div className="absolute top-0 right-0 p-4 opacity-10">
-          <Cpu className="h-24 w-24" />
+      {/* --- Section 2: Executive Summary Grid --- */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Alerts Card */}
+        <div className="group relative overflow-hidden rounded-2xl border bg-card p-6 shadow-sm transition-all hover:shadow-md">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Active Alerts</p>
+              <h3 className="text-3xl font-bold tracking-tighter text-red-500">
+                {/* 実際のアラート件数をバインド可能 */}
+                {data?.alertsCount || 0}
+              </h3>
+            </div>
+            <div className="rounded-full bg-red-500/10 p-3 text-red-500 transition-transform group-hover:scale-110">
+              <AlertCircle className="h-6 w-6" />
+            </div>
+          </div>
+          <div className="mt-4 flex items-center gap-2">
+            <Badge variant="outline" className="bg-red-500/5 text-[10px] border-red-500/20 text-red-600">
+              Requires Attention
+            </Badge>
+          </div>
         </div>
-        <CardContent className="p-6">
-          <div className="flex items-center gap-2 mb-4 text-emerald-400">
-            <Activity className="h-4 w-4 animate-pulse" />
-            <h4 className="text-xs font-bold tracking-widest uppercase">Local Node System Monitor</h4>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+
+        {/* System Activity Card */}
+        <div className="group relative overflow-hidden rounded-2xl border bg-card p-6 shadow-sm transition-all hover:shadow-md">
+          <div className="flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-[9px] text-slate-400 uppercase">Worker Engine</p>
-              <p className="text-sm font-mono text-emerald-400">● ONLINE</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Running Tasks</p>
+              <h3 className="text-3xl font-bold tracking-tighter text-blue-500">{runningTasksCount}</h3>
             </div>
-            <div className="space-y-1">
-              <p className="text-[9px] text-slate-400 uppercase">Active Tasks</p>
-              <p className="text-sm font-mono">{runningCount} Running</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-[9px] text-slate-400 uppercase">Last Sync</p>
-              <p className="text-sm font-mono">Just Now</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-[9px] text-slate-400 uppercase">Shared Drive</p>
-              <p className="text-sm font-mono text-blue-400">Y:/ Connected</p>
+            <div className="rounded-full bg-blue-500/10 p-3 text-blue-500 transition-transform group-hover:scale-110">
+              <Activity className="h-6 w-6" />
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="mt-4 flex items-center gap-2">
+            <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-ping" />
+            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">
+              Node Processing Active
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* --- Section 3: Node Health Status --- */}
+      <div className="rounded-xl border bg-slate-950 p-4 text-slate-400 shadow-inner overflow-hidden relative group">
+        {/* 背景の装飾用アイコン */}
+        <Globe className="absolute -right-4 -top-4 h-24 w-24 opacity-5 transition-transform group-hover:rotate-12 duration-1000" />
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/5 border border-white/10">
+              <Cpu className="h-5 w-5 text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-white uppercase tracking-widest">Local Engine Status</p>
+              <p className="text-[11px] font-mono opacity-60">System Version: v1.0.4-stable</p>
+            </div>
+          </div>
+
+          <div className="flex gap-6">
+            <div className="space-y-0.5">
+              <p className="text-[9px] uppercase tracking-tighter opacity-50">Node Health</p>
+              <p className="text-xs font-bold text-emerald-400 font-mono">EXCELLENT</p>
+            </div>
+            <div className="space-y-0.5">
+              <p className="text-[9px] uppercase tracking-tighter opacity-50">Latency</p>
+              <p className="text-xs font-bold font-mono text-white">4ms</p>
+            </div>
+            <div className="space-y-0.5">
+              <p className="text-[9px] uppercase tracking-tighter opacity-50">Sync</p>
+              <p className="text-xs font-bold font-mono text-white">REAL-TIME</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
