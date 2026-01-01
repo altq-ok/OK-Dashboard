@@ -7,6 +7,7 @@ REST endpoints for the Next.js frontend to interact with the calculation engine.
 
 import logging
 import os
+import pathlib
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from multiprocessing import Event, Process, Queue
@@ -26,9 +27,13 @@ logger = logging.getLogger(__name__)
 
 
 # Configuration
-home = expanduser("~")
-SHARED_DIR = f"{home}\\Dev\\TypeScript\\Shared"
-LOCAL_DIR = f"{home}\\Dev\\TypeScript\\Local"
+home = pathlib.Path(expanduser("~"))
+dev_dir = home / "Dev"
+if not dev_dir.exists():
+    dev_dir = home / "Documents" / "Dev"
+
+SHARED_DIR = f"{str(dev_dir)}\\TypeScript\\Shared"
+LOCAL_DIR = f"{str(dev_dir)}\\TypeScript\\Local"
 USER_NAME = os.getlogin()
 
 # To save under app.state
