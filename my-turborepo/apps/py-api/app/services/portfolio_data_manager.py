@@ -89,8 +89,20 @@ class PortfolioDataManager:
         elif data_type == "calendar_events":
             # calendar_events data: Corporate actions or news mock
             return [
-                {"fund_id": target_id, "event_type": "DIVIDEND", "message": "Expected 0.5 USD", "impact": "High"},
-                {"fund_id": target_id, "event_type": "EARNINGS", "message": "Release on Friday", "impact": "Medium"},
+                {
+                    "id": "1",
+                    "title": "AAPL Earnings Call",
+                    "start_date": "2026-01-15",
+                    "description": "Quarterly financial results",
+                    "category": "earnings",
+                },
+                {
+                    "id": "2",
+                    "title": "FOMC Meeting",
+                    "start_date": "2026-01-28",
+                    "description": "Interest rate decision",
+                    "category": "macro",
+                },
             ]
         else:
             # guidelines data: Compliance check mock
