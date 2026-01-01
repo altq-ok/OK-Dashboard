@@ -12,7 +12,7 @@ export type DashboardPreset = {
 export const DASHBOARD_PRESETS: DashboardPreset[] = [
   {
     id: 'home',
-    title: 'Executive Home',
+    title: 'Home',
     description: 'Overview of global markets, system health, and team activity.',
     layoutId: 'single',
     widgets: ['home'],
