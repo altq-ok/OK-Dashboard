@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, Literal
+from typing import Any, Dict, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -22,3 +22,12 @@ class TaskStatus(BaseModel):
     message: str = Field("", description="Display message for the UI")
     last_heartbeat: datetime = Field(..., description="Last update timestamp")
     params: TaskParams
+
+
+class UserEvent(BaseModel):
+    event_id: str = Field(..., description="Unique event ID")
+    title: str = Field(..., description="Event title")
+    start: str = Field(..., description="Start date (YYYY-MM-DD)")
+    end: Optional[str] = Field(None, description="End date (YYYY-MM-DD)")
+    description: Optional[str] = ""
+    user: str = Field(..., description="User who created this")

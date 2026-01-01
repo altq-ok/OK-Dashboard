@@ -5,6 +5,7 @@ Handles the lifecycle of the background worker process and provides
 REST endpoints for the Next.js frontend to interact with the calculation engine.
 """
 
+import json
 import logging
 import os
 import pathlib
@@ -13,6 +14,7 @@ from datetime import datetime, timezone
 from multiprocessing import Event, Process, Queue
 from os.path import expanduser
 
+import portalocker
 from fastapi import FastAPI, HTTPException, Request
 from starlette.middleware.cors import CORSMiddleware
 
@@ -20,7 +22,7 @@ from app.core.data_manager import DataManager
 from app.core.status import StatusManager
 from app.core.syncer import FileSyncer
 from app.core.worker import calc_worker
-from app.schemas.task import TaskParams, TaskStatus
+from app.schemas.task import TaskParams, TaskStatus, UserEvent
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -34,6 +36,9 @@ if not dev_dir.exists():
 SHARED_DIR = f"{str(dev_dir)}\\TypeScript\\Shared"
 LOCAL_DIR = f"{str(dev_dir)}\\TypeScript\\Local"
 USER_NAME = os.getlogin()
+# Directly write to the shared drive as this should be small and not frequent
+USER_DATA_DIR = pathlib.Path(SHARED_DIR) / "user_data"
+USER_EVENTS_FILE = USER_DATA_DIR / "user_events.json"
 
 # To save under app.state
 state = {}
@@ -213,3 +218,73 @@ async def get_worker_status(request: Request):
         "pid": process.pid if is_alive else None,
         "status": "ready" if is_ready else "initializing" if is_alive else "offline",
     }
+
+
+@app.get("/data/user-events", response_model=list[UserEvent])
+async def get_user_events():
+    """Get user input events from the shared"""
+    if not USER_EVENTS_FILE.exists():
+        return []
+    try:
+        with open(USER_EVENTS_FILE, "r", encoding="utf-8") as f:
+            # Shared lock - allow multiple reads but one write
+            portalocker.lock(f, portalocker.LOCK_SH)
+            content = f.read()
+            return json.loads(content) if content else []
+    except Exception as e:
+        logger.error(f"Error reading user events: {e}")
+        return []
+
+
+@app.post("/data/user-events")
+async def save_user_event(event: UserEvent):
+    """Write new event to JSON in the shared"""
+    USER_DATA_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        with open(USER_EVENTS_FILE, "a+", encoding="utf-8") as f:
+            portalocker.lock(f, portalocker.LOCK_EX)  # Exclusive lock
+            # Read from the top of the file
+            f.seek(0)
+            content = f.read()
+            events = json.loads(content) if content else []
+
+            # Update if ID exists, or add a new item
+            event_dict = event.model_dump()
+            existing_idx = next((i for i, e in enumerate(events) if e["event_id"] == event.event_id), None)
+            if existing_idx is not None:
+                events[existing_idx] = event_dict
+            else:
+                events.append(event_dict)
+
+            # Write to the file
+            f.seek(0)
+            f.truncate()
+            json.dump(events, f, indent=2, ensure_ascii=False)
+
+        return {"status": "success"}
+    except Exception as e:
+        logger.error(f"Error saving user event: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/data/user-events/{event_id}")
+async def delete_user_event(event_id: str):
+    """Delete an event with ID"""
+    if not USER_EVENTS_FILE.exists():
+        return {"status": "not_found"}
+
+    with open(USER_EVENTS_FILE, "a+", encoding="utf-8") as f:
+        portalocker.lock(f, portalocker.LOCK_EX)
+        f.seek(0)
+        content = f.read()
+
+        # Remove the item with the ID
+        events = json.loads(content) if content else []
+        new_events = [e for e in events if e["event_id"] != event_id]
+
+        # Write to the file
+        f.seek(0)
+        f.truncate()
+        json.dump(new_events, f, indent=2, ensure_ascii=False)
+
+    return {"status": "deleted"}
