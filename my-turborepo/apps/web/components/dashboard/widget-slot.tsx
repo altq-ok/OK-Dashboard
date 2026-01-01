@@ -38,7 +38,7 @@ export function WidgetSlot({ index }: { index: number }) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-2">
-                <Plus className="h-4 w-4" /> Select Widget
+                <Plus className="h-4 w-4" /> Open Widget
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="center" className="w-48">

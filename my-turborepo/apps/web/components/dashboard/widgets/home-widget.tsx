@@ -1,141 +1,206 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Globe, Activity, AlertCircle, Cpu, Clock } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { useEffect, useState, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useAllStatuses } from '@/hooks/use-all-statuses';
+import { Globe, AlertTriangle, Calendar, Cpu, Activity, CheckCircle2, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { WidgetProps } from '@/lib/widget-registry';
 
-// 設定: 表示する都市とマーケット情報
-const MARKETS = [
-  { city: 'Tokyo', zone: 'Asia/Tokyo', code: 'TSE', color: 'from-red-500/20' },
-  { city: 'London', zone: 'Europe/London', code: 'LSE', color: 'from-blue-500/20' },
-  { city: 'New York', zone: 'America/New_York', code: 'NYSE', color: 'from-emerald-500/20' },
+// World clock settings
+const LOCATIONS = [
+  { city: 'Tokyo', zone: 'Asia/Tokyo', flag: '🇯🇵', market: 'TSE', open: 9, close: 15 },
+  { city: 'London', zone: 'Europe/London', flag: '🇬🇧', market: 'LSE', open: 8, close: 16 },
+  { city: 'New York', zone: 'America/New_York', flag: '🇺🇸', market: 'NYSE', open: 9, close: 16 },
 ];
 
-export function HomeWidget({ data, status, targetId }: WidgetProps) {
-  const [now, setNow] = useState(new Date());
+interface WidgetProps {
+  data?: any;
+  status?: any;
+  targetId: string;
+}
 
-  // 1秒ごとに時刻を更新
+export function HomeWidget({ data, status, targetId }: WidgetProps) {
+  const { data: allStatuses } = useAllStatuses();
+  const [times, setTimes] = useState<Record<string, string>>({});
+
+  // Update clock every second
   useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 1000);
+    const timer = setInterval(() => {
+      const newTimes: Record<string, string> = {};
+      LOCATIONS.forEach((loc) => {
+        newTimes[loc.city] = new Intl.DateTimeFormat('en-US', {
+          timeZone: loc.zone,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        }).format(new Date());
+      });
+      setTimes(newTimes);
+    }, 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // 計算中のタスク数などを取得（statusがALL/summaryを想定）
-  // もし status が単一のオブジェクトなら、その中の progress 等を表示
-  const runningTasksCount = status?.status === 'running' ? 1 : 0;
+  // Calculate summary from all statuses
+  const stats = useMemo(() => {
+    if (!allStatuses) return { running: 0, failed: 0, done: 0 };
+    return {
+      running: allStatuses.filter((s) => s.status === 'running').length,
+      failed: allStatuses.filter((s) => s.status === 'failed').length,
+      done: allStatuses.filter((s) => s.status === 'done').length,
+    };
+  }, [allStatuses]);
 
   return (
-    <div className="p-1 space-y-6 animate-in fade-in duration-700">
-      {/* --- Section 1: World Clocks --- */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {MARKETS.map((m) => {
-          const timeStr = now.toLocaleTimeString('en-US', {
-            timeZone: m.zone,
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false,
-          });
+    <div className="p-4 space-y-4 animate-in fade-in duration-700 max-w-7xl mx-auto">
+      {/* --- Bento Grid Top Row --- */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {/* World Clocks (Spans 3 columns) */}
+        <Card className="md:col-span-3 shadow-sm border-muted-foreground/10 bg-gradient-to-br from-background to-muted/30 overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-4 opacity-5">
+            <Globe className="h-24 w-24" />
+          </div>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+              <Globe className="h-3 w-3" /> Global Market Hours
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-3 gap-2">
+            {LOCATIONS.map((loc) => {
+              const timeStr = times[loc.city] || '00:00:00';
+              const hour = parseInt(timeStr.split(':')[0]);
+              const isOpen = hour >= loc.open && hour < loc.close;
 
-          return (
-            <Card
-              key={m.city}
-              className={cn('border-none bg-gradient-to-br to-background shadow-sm overflow-hidden', m.color)}
-            >
-              <CardContent className="p-4 flex flex-col items-center justify-center space-y-1">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Clock className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-[10px] font-bold uppercase tracking-tighter text-muted-foreground">
-                    {m.city} / {m.code}
+              return (
+                <div
+                  key={loc.city}
+                  className="flex flex-col items-center p-4 rounded-2xl bg-background/40 border shadow-sm backdrop-blur-sm"
+                >
+                  <span className="text-3xl mb-1 drop-shadow-sm">{loc.flag}</span>
+                  <span className="text-[10px] uppercase font-black text-muted-foreground tracking-tighter">
+                    {loc.city}
                   </span>
+                  <span className="text-2xl font-mono font-bold tracking-tighter tabular-nums text-foreground">
+                    {timeStr}
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'mt-2 text-[9px] h-4 font-bold border-none',
+                      isOpen ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground',
+                    )}
+                  >
+                    {loc.market} • {isOpen ? 'OPEN' : 'CLOSED'}
+                  </Badge>
                 </div>
-                <div className="text-2xl font-mono font-bold tracking-tighter">{timeStr}</div>
-                <div className="flex items-center gap-1.5 pt-1">
-                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[9px] font-medium text-emerald-600 dark:text-emerald-400">MARKET OPEN</span>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        {/* Success Rate / Stability (Spans 1 column) */}
+        <Card className="flex flex-col justify-between p-6 bg-card border shadow-sm">
+          <div className="space-y-1">
+            <TrendingUp className="h-5 w-5 text-emerald-500" />
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Stability</p>
+          </div>
+          <div>
+            <h3 className="text-4xl font-bold tracking-tighter italic">98.2%</h3>
+            <p className="text-[9px] text-muted-foreground font-medium uppercase mt-1">Worker Success Rate</p>
+          </div>
+          <div className="flex gap-1">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className={cn('h-1 flex-1 rounded-full', i < 4 ? 'bg-emerald-500' : 'bg-muted')} />
+            ))}
+          </div>
+        </Card>
       </div>
 
-      {/* --- Section 2: Executive Summary Grid --- */}
+      {/* --- Bento Grid Middle Row --- */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Alerts Card */}
-        <div className="group relative overflow-hidden rounded-2xl border bg-card p-6 shadow-sm transition-all hover:shadow-md">
-          <div className="flex items-center justify-between">
+        {/* Alerts Metrics */}
+        <Card className="border-l-4 border-l-red-500 shadow-sm group hover:bg-red-50/50 dark:hover:bg-red-950/10 transition-colors">
+          <CardContent className="p-6 flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Active Alerts</p>
-              <h3 className="text-3xl font-bold tracking-tighter text-red-500">
-                {/* 実際のアラート件数をバインド可能 */}
-                {data?.alertsCount || 0}
-              </h3>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Guideline Alerts</p>
+              <h3 className="text-4xl font-bold text-red-600 tracking-tighter">{stats.failed}</h3>
+              <p className="text-[10px] text-muted-foreground font-medium italic">Active compliance violations</p>
             </div>
-            <div className="rounded-full bg-red-500/10 p-3 text-red-500 transition-transform group-hover:scale-110">
-              <AlertCircle className="h-6 w-6" />
+            <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-3xl transition-transform group-hover:scale-110">
+              <AlertTriangle className="text-red-600 h-8 w-8" />
             </div>
-          </div>
-          <div className="mt-4 flex items-center gap-2">
-            <Badge variant="outline" className="bg-red-500/5 text-[10px] border-red-500/20 text-red-600">
-              Requires Attention
-            </Badge>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* System Activity Card */}
-        <div className="group relative overflow-hidden rounded-2xl border bg-card p-6 shadow-sm transition-all hover:shadow-md">
-          <div className="flex items-center justify-between">
+        {/* Events Metrics */}
+        <Card className="border-l-4 border-l-blue-500 shadow-sm group hover:bg-blue-50/50 dark:hover:bg-blue-950/10 transition-colors">
+          <CardContent className="p-6 flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Running Tasks</p>
-              <h3 className="text-3xl font-bold tracking-tighter text-blue-500">{runningTasksCount}</h3>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Today&apos;s Events</p>
+              <h3 className="text-4xl font-bold text-blue-600 tracking-tighter">12</h3>
+              <p className="text-[10px] text-muted-foreground font-medium italic">Earnings & Corporate Actions</p>
             </div>
-            <div className="rounded-full bg-blue-500/10 p-3 text-blue-500 transition-transform group-hover:scale-110">
-              <Activity className="h-6 w-6" />
+            <div className="bg-blue-100 dark:bg-blue-900/30 p-4 rounded-3xl transition-transform group-hover:scale-110">
+              <Calendar className="text-blue-600 h-8 w-8" />
             </div>
-          </div>
-          <div className="mt-4 flex items-center gap-2">
-            <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-ping" />
-            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">
-              Node Processing Active
-            </p>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* --- Section 3: Node Health Status --- */}
-      <div className="rounded-xl border bg-slate-950 p-4 text-slate-400 shadow-inner overflow-hidden relative group">
-        {/* 背景の装飾用アイコン */}
-        <Globe className="absolute -right-4 -top-4 h-24 w-24 opacity-5 transition-transform group-hover:rotate-12 duration-1000" />
+      {/* --- Section 3: System Status --- */}
+      <Card className="bg-muted/40 dark:bg-slate-950 text-foreground overflow-hidden relative border shadow-sm rounded-2xl transition-colors duration-500">
+        <div className="absolute top-0 right-0 p-4 opacity-[0.03] dark:opacity-10 rotate-12">
+          <Cpu className="h-32 w-32" />
+        </div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/5 border border-white/10">
-              <Cpu className="h-5 w-5 text-emerald-400" />
+        <CardContent className="p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-background border shadow-inner">
+              <Activity className="h-5 w-5 text-emerald-500 animate-pulse" />
             </div>
             <div>
-              <p className="text-[10px] font-bold text-white uppercase tracking-widest">Local Engine Status</p>
-              <p className="text-[11px] font-mono opacity-60">System Version: v1.0.4-stable</p>
+              <h4 className="text-xs font-black tracking-[0.2em] uppercase">Local Node System Monitor</h4>
+              <p className="text-[10px] font-mono text-muted-foreground">Terminal ID: NODE-ALPHA-01</p>
             </div>
           </div>
 
-          <div className="flex gap-6">
-            <div className="space-y-0.5">
-              <p className="text-[9px] uppercase tracking-tighter opacity-50">Node Health</p>
-              <p className="text-xs font-bold text-emerald-400 font-mono">EXCELLENT</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 border-t border-border pt-6">
+            <div className="space-y-1.5">
+              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">Worker Engine</p>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
+                <p className="text-sm font-mono font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter">
+                  Ready
+                </p>
+              </div>
             </div>
-            <div className="space-y-0.5">
-              <p className="text-[9px] uppercase tracking-tighter opacity-50">Latency</p>
-              <p className="text-xs font-bold font-mono text-white">4ms</p>
+
+            <div className="space-y-1.5">
+              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">Parallel Tasks</p>
+              <p className="text-lg font-mono font-bold tracking-tighter">{stats.running}</p>
             </div>
-            <div className="space-y-0.5">
-              <p className="text-[9px] uppercase tracking-tighter opacity-50">Sync</p>
-              <p className="text-xs font-bold font-mono text-white">REAL-TIME</p>
+
+            <div className="space-y-1.5">
+              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">Link Status</p>
+              <p className="text-sm font-mono font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tighter">
+                Y:/ Synchronized
+              </p>
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">Version</p>
+              <p className="text-sm font-mono font-bold text-muted-foreground uppercase tracking-tighter">v1.2.0-STB</p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Footer Info */}
+      <div className="flex justify-center items-center gap-6 py-2">
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-tighter bg-muted/50 px-3 py-1 rounded-full border">
+          <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+          Everything is updated
         </div>
       </div>
     </div>
