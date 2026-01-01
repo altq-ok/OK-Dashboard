@@ -5,16 +5,18 @@ import { HomeWidget } from '@/components/dashboard/widgets/home-widget';
 import { CalendarWidget } from '@/components/dashboard/widgets/calendar-widget';
 import { WidgetType } from '@/types/dashboard';
 
-export const WIDGET_TASK_MAP = {
+/**
+ * For each widget to dispaly "Updating..." when a task is running
+ */
+export const WIDGET_PRIMARY_TASK = {
   home: 'summary',
   analytics: 'pricing',
   userList: 'event',
   logs: 'guideline',
+  settings: 'none',
 } as const;
 
 export interface WidgetProps {
-  data: any;
-  status: any;
   targetId: string;
 }
 
