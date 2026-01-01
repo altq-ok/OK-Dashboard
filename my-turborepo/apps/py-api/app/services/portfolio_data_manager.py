@@ -42,17 +42,22 @@ class PortfolioDataManager:
 
         time.sleep(5)  # Simulate heavy task
 
-        outputs = []
+        data_types = []
         if task_type == "pricing":
-            outputs = ["prices", "fx_rates"]
+            data_types = ["prices", "fx_rates"]
         elif task_type == "event":
-            outputs = ["calendar_events"]
+            data_types = ["calendar_events"]
         else:
-            outputs = [task_type]
+            data_types = [task_type]
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        for data_type in outputs:
+        print(f"Target ID: {target_id}")
+        print(f"Task type: {task_type}")
+        print(f"Data types: {data_types}")
+        print(f"Extra params: {params}")
+
+        for data_type in data_types:
             save_dir = self.shared_root / "snapshots" / data_type / target_id
             save_dir.mkdir(parents=True, exist_ok=True)
 

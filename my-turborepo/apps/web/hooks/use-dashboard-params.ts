@@ -1,8 +1,7 @@
 'use client';
 
 import { useQueryState, parseAsString } from 'nuqs';
-
-export type TaskType = 'pricing' | 'event' | 'guideline';
+import { DataType } from '@/lib/widget-registry';
 
 export function useDashboardParams() {
   // Get target_id ?target=ALL
@@ -11,20 +10,20 @@ export function useDashboardParams() {
   // Get version (snapshot) per data type
   // ?pricing_v=latest, ?event_v=...
   // e.g. ?event_v=20251231_1200.parquet&pricing_v=latest
-  const [pricingVersion, setPricingVersion] = useQueryState('pricing_v', parseAsString.withDefault('latest'));
-  const [eventVersion, setEventVersion] = useQueryState('event_v', parseAsString.withDefault('latest'));
-  const [guidelineVersion, setGuidelineVersion] = useQueryState('guideline_v', parseAsString.withDefault('latest'));
+  const [pricesVersion, setPricesVersion] = useQueryState('prices_v', parseAsString.withDefault('latest'));
+  const [eventsVersion, setEventsVersion] = useQueryState('calendar_events_v', parseAsString.withDefault('latest'));
+  const [guidelinesVersion, setGuidelinesVersion] = useQueryState('guidelines_v', parseAsString.withDefault('latest'));
 
-  const setVersion = (type: TaskType, value: string) => {
-    if (type === 'pricing') setPricingVersion(value);
-    if (type === 'event') setEventVersion(value);
-    if (type === 'guideline') setGuidelineVersion(value);
+  const setVersion = (type: DataType, value: string) => {
+    if (type === 'prices') setPricesVersion(value);
+    if (type === 'calendar_events') setEventsVersion(value);
+    if (type === 'guidelines') setGuidelinesVersion(value);
   };
 
   const versions = {
-    pricing: pricingVersion,
-    event: eventVersion,
-    guideline: guidelineVersion,
+    prices: pricesVersion,
+    calendar_events: eventsVersion,
+    guideline_results: guidelinesVersion,
   };
 
   return {

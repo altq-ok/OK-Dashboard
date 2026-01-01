@@ -25,7 +25,9 @@ def calc_worker(queue: multiprocessing.Queue, shared_dir: str, user_name: str, r
 
     logger.info(f"Worker[{os.getpid()}]: Intializing engines...")
     engines = {
+        "pricing": PortfolioDataManager(shared_dir=shared_dir),
         "event": PortfolioDataManager(shared_dir=shared_dir),
+        "guideline": PortfolioDataManager(shared_dir=shared_dir),
     }
     # Initialize own StatusManager for this worker's process
     status_mgr = StatusManager(shared_dir)

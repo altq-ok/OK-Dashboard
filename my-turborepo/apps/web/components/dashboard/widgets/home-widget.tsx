@@ -57,7 +57,7 @@ export function HomeWidget({ data, status, targetId }: WidgetProps) {
       {/* --- Bento Grid Top Row --- */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* World Clocks (Spans 3 columns) */}
-        <Card className="md:col-span-3 shadow-sm border-muted-foreground/10 bg-gradient-to-br from-background to-muted/30 overflow-hidden relative">
+        <Card className="md:col-span-3 shadow-sm border-muted-foreground/10 bg-linear-to-br from-background to-muted/30 overflow-hidden relative">
           <div className="absolute top-0 right-0 p-4 opacity-5">
             <Globe className="h-24 w-24" />
           </div>

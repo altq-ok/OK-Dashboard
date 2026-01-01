@@ -5,6 +5,7 @@ import { ToggleThemeButton } from '@/components/dashboard/toggle-theme';
 import { LayoutResetButton, LayoutPicker } from '@/components/dashboard/layout-picker';
 import { DataControlCenter } from '@/components/dashboard/data-control-center';
 import { GlobalTaskMonitor } from '@/components/dashboard/global-task-monitor';
+import { SnapshotSelector } from '@/components/dashboard/snapshot-selector';
 
 export function Header() {
   return (
@@ -23,8 +24,13 @@ export function Header() {
 
       {/* Right: Controls, Tasks, and Settings */}
       <div className="flex items-center gap-3">
-        {/* Run task and select snapshots */}
+        {/* Run task */}
         <DataControlCenter />
+
+        <Separator orientation="vertical" className="h-6 mx-1" />
+
+        {/* Select snapshots */}
+        <SnapshotSelector />
 
         <Separator orientation="vertical" className="h-6 mx-1" />
 

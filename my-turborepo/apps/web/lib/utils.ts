@@ -21,3 +21,23 @@ export function formatSnapshotTimestamp(filename: string | undefined) {
 
   return `${month}/${day} ${hour}:${min}`;
 }
+
+/**
+ * Check if snapshot is as of today
+ * @param filename e.g. "20260101_150000.parquet"
+ */
+export function isSnapshotToday(filename: string | undefined | null): boolean {
+  if (!filename || filename === 'latest') return false;
+
+  // Get the first 8 letters (YYYYMMDD)
+  const fileDatePart = filename.split('_')[0];
+
+  // Get local date with YYYYMMDD format
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const todayStr = `${year}${month}${day}`;
+
+  return fileDatePart === todayStr;
+}

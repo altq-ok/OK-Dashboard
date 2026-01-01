@@ -1,14 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useTask } from '@/hooks/use-task';
-import { useDashboardParams, TaskType } from '@/hooks/use-dashboard-params';
+import { useDashboardParams } from '@/hooks/use-dashboard-params';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
 import {
   RefreshCw,
-  History,
   Check,
   Database,
   ChevronDown,
@@ -18,48 +16,19 @@ import {
   Landmark,
   Settings2,
 } from 'lucide-react';
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { cn, formatSnapshotTimestamp } from '@/lib/utils';
-import { useAllStatuses } from '@/hooks/use-all-statuses';
+import { cn } from '@/lib/utils';
+import { useTaskCollection } from '@/hooks/use-task-collection';
 
 export function DataControlCenter() {
-  const { targetId, setVersion, versions } = useDashboardParams();
-
-  // Task definitions - UI is automatically updated based on this map
-  const taskDefinitions: { label: string; type: TaskType }[] = [
-    { label: 'Pricing', type: 'pricing' },
-    { label: 'Event', type: 'event' },
-    { label: 'Guideline', type: 'guideline' },
-  ];
-
-  // All task monitoring
-  const taskHooks = {
-    pricing: useTask(targetId, 'pricing', versions.pricing),
-    event: useTask(targetId, 'event', versions.event),
-    guideline: useTask(targetId, 'guideline', versions.guideline),
-  };
+  const { targetId } = useDashboardParams();
+  const { tasks, isAnyTaskRunning } = useTaskCollection(targetId);
 
   // Manage extra parameters for tasks
   const [reloadParams, setReloadParams] = useState<string[]>([]);
 
-  const handleUpdate = (type: keyof typeof taskHooks) => {
-    const extraParams = {
-      reload: reloadParams,
-    };
-    taskHooks[type].run({
-      extra_params: extraParams,
-    });
+  const handleUpdate = (runFn: (extra: any) => void) => {
+    runFn({ reload: reloadParams });
   };
-
-  // Check if any task is pending or running
-  const { data: allStatuses } = useAllStatuses();
-  const isAnyTaskRunning = allStatuses?.some((s) => s.status === 'running' || s.status == 'pending');
 
   return (
     <Popover>
@@ -83,27 +52,20 @@ export function DataControlCenter() {
         <Separator />
 
         <div className="p-2 space-y-1">
-          {taskDefinitions.map(({ label, type }) => {
-            const task = taskHooks[type as keyof typeof taskHooks];
+          {tasks.map(({ id, label, task }) => {
             const isRunning = task.status?.status === 'running';
-            const currentVersion = versions[type];
             return (
               <div
-                key={type}
+                key={id}
                 className={`flex items-center justify-between p-2 rounded-md transition-colors ${isRunning ? 'bg-blue-50/50 dark:bg-blue-900/20' : 'hover:bg-muted/50'}`}
               >
                 <div className="flex flex-col gap-0.5">
                   <span className="text-xs font-bold">{label}</span>
                   <span className="text-[10px] text-muted-foreground">
                     {isRunning ? (
-                      // Get message from Worker while running
-                      <span className="text-blue-500 animate-pulse">{task.status?.message}</span>
-                    ) : currentVersion === 'latest' ? (
-                      // If latest is selected, show updated time of the snapshot
-                      `Latest: ${formatSnapshotTimestamp(task.snapshots?.[0]) || 'No data'}`
+                      <span className="text-blue-500 animate-pulse font-medium">{task.status?.message}</span>
                     ) : (
-                      // For past snapshots, show its updated time
-                      `Viewing: ${formatSnapshotTimestamp(currentVersion)}`
+                      'Ready to update'
                     )}
                   </span>
                 </div>
@@ -114,39 +76,11 @@ export function DataControlCenter() {
                     size="sm"
                     variant={isRunning ? 'ghost' : 'outline'}
                     className={`h-8 w-8 p-0 ${isRunning ? 'text-blue-500' : ''}`}
-                    onClick={() => handleUpdate(type)}
+                    onClick={() => handleUpdate(task.run)}
                     disabled={isRunning}
                   >
                     <RefreshCw className={`h-4 w-4 ${isRunning ? 'animate-spin' : ''}`} />
                   </Button>
-
-                  {/* History Dropdown */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                        <History className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
-                      <DropdownMenuItem onClick={() => setVersion(type, 'latest')} className="flex justify-between">
-                        Latest Snapshot
-                        {currentVersion === 'latest' && <Check className="h-4 w-4" />}
-                      </DropdownMenuItem>
-                      <Separator className="my-1" />
-                      <div className="max-h-40 overflow-y-auto">
-                        {task.snapshots?.map((v: string) => (
-                          <DropdownMenuItem
-                            key={v}
-                            onClick={() => setVersion(type, v)}
-                            className="text-xs flex justify-between"
-                          >
-                            {v.replace('.parquet', '')}
-                            {currentVersion === v && <Check className="h-4 w-4" />}
-                          </DropdownMenuItem>
-                        ))}
-                      </div>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
               </div>
             );
