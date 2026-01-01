@@ -52,7 +52,7 @@ def calc_worker(queue: multiprocessing.Queue, shared_dir: str, user_name: str, r
                 raise ValueError(f"Unknown task_type: {task_type}")
 
             # Notify start via status manager
-            status_mgr.update(task_id, "running", user_name, params=params, progress=0, message="Initializing...")
+            status_mgr.update(task_id, "running", user_name, params=params, progress=0, message="Running...")
 
             # Run task
             # No need to save result path here as the dashboard should refer to the latest (or a specific version manually)
