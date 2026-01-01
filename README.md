@@ -168,6 +168,14 @@ Data for Zustand is saved with `apps/web/store/useDashboardStore.ts`.
 
 Layout patterns etc. are saved under `apps/web/lib` (e.g. `layout-templates.ts`)
 
+### Calendar widget
+
+Install `schedule-x` with below command:
+
+```bash
+install @schedule-x/react @schedule-x/calendar @schedule-x/theme-default @schedule-x/event-modal
+```
+
 ### Type definitions
 
 This is a monorepo (i.e. both frontend and backend are in the same repository). Although the backend may not be typescript, common type definitions are mainly done in `my-turborepo/packages/types` which enables type sharing between frontend and backend.
@@ -190,6 +198,12 @@ The same structures need to be defined in below folders to enable auto-completio
 To add new widgets, you don't need to touch the core logics.
 
 Add a new widget under `apps/web/components/dashboard/widgets/*-widget.tsx` and register it to `apps/web/types/dashboard.ts` and `apps/web/lib/widget-registry.ts`.
+
+Data flow is structured as below:
+
+- **Widget** => widget can require single / multiple data types and can hold one primary task to monitor.
+- **Task** => task can generate single / multiple data types (Parquet files)
+- **Data** => various data types (Parquet files)
 
 ## Backend Implementation
 
