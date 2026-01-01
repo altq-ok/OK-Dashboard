@@ -58,7 +58,8 @@ class PortfolioDataManager:
 
             file_path = save_dir / f"{timestamp}.parquet"
 
-            df = self._generate_mock_data(target_id, data_type)
+            mock_data = self._generate_mock_data(target_id, data_type)
+            df = self.pd.DataFrame(mock_data)
             df.to_parquet(file_path, engine="pyarrow", index=False)
             logger.info(f"Saved {data_type} to {file_path}")
 
