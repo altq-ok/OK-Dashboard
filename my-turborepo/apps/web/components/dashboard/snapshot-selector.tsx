@@ -129,18 +129,18 @@ function SnapshotList({
               <Clock className="h-3 w-3" /> {latestFileTimestamp}
             </span>
           </div>
-          {currentVersion === 'latest' && <Check className="h-4 w-4 text-blue-500 stroke-[3]" />}
+          {currentVersion === 'latest' && <Check className="h-4 w-4 text-blue-500 stroke-3" />}
         </button>
 
         <div className="py-2 px-3">
           <Separator />
         </div>
 
-        {/* History Items */}
+        {/* History Items - exclude latest */}
         {isDataLoading ? (
           <div className="p-8 text-center text-xs text-muted-foreground animate-pulse">Scanning timeline...</div>
-        ) : snapshots.length > 0 ? (
-          snapshots.map((v) => (
+        ) : snapshots.length > 1 ? (
+          snapshots.slice(1).map((v) => (
             <button
               key={v}
               onClick={() => onSelect(v)}

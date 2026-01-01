@@ -3,6 +3,7 @@ import { Home, BarChart3, Calendar, ShieldCheck, Settings, LucideIcon } from 'lu
 import { AnalyticsWidget } from '@/components/dashboard/widgets/analytics-widget';
 import { HomeWidget } from '@/components/dashboard/widgets/home-widget';
 import { CalendarWidget } from '@/components/dashboard/widgets/calendar-widget';
+import { TBIWidget } from '@/components/dashboard/widgets/to-be-implemented-widget';
 import { WidgetType } from '@/types/dashboard';
 
 // Supported tasks by the dashboard
@@ -47,14 +48,6 @@ export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
   home: { component: HomeWidget, label: 'Home', icon: Home, disableOpacityOnUpdate: true },
   analytics: { component: AnalyticsWidget, label: 'Analytics', icon: BarChart3 },
   userList: { component: CalendarWidget, label: 'Calendar', icon: Calendar },
-  logs: {
-    component: () => '<div className="p-4 text-muted-foreground">Validation Logs coming soon...</div>',
-    label: 'Validation',
-    icon: ShieldCheck,
-  },
-  settings: {
-    component: () => '<div className="p-4 text-muted-foreground">Settings Panel coming soon...</div>',
-    label: 'Settings',
-    icon: Settings,
-  },
+  logs: { component: TBIWidget, label: 'Validation', icon: ShieldCheck },
+  settings: { component: TBIWidget, label: 'Settings', icon: Settings },
 };

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAllStatuses } from '@/hooks/use-all-statuses';
 import { Globe, AlertTriangle, Calendar, Cpu, Activity, CheckCircle2, TrendingUp } from 'lucide-react';
+import { WidgetProps } from '@/lib/widget-registry';
 import { cn } from '@/lib/utils';
 
 // World clock settings
@@ -14,13 +15,7 @@ const LOCATIONS = [
   { city: 'New York', zone: 'America/New_York', flag: '🇺🇸', market: 'NYSE', open: 9, close: 16 },
 ];
 
-interface WidgetProps {
-  data?: any;
-  status?: any;
-  targetId: string;
-}
-
-export function HomeWidget({ data, status, targetId }: WidgetProps) {
+export function HomeWidget({ targetId }: WidgetProps) {
   const { data: allStatuses } = useAllStatuses();
   const [times, setTimes] = useState<Record<string, string>>({});
 
