@@ -16,3 +16,13 @@ export interface TaskStatus {
   last_heartbeat: string; // ISO format string from JSON
   params: TaskParams;
 }
+
+export interface UserEvent {
+  event_id: string;
+  title: string;
+  start_date: string;
+  end_date?: string;
+  description?: string;
+  category?: string;
+  user: string;
+}

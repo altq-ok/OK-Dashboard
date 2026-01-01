@@ -147,6 +147,8 @@ pnpm dlx shadcn@latest add badge
 pnpm dlx shadcn@latest add popover
 pnpm dlx shadcn@latest add card
 pnpm dlx shadcn@latest add scroll-area
+pnpm dlx shadcn@latest add dialog
+pnpm dlx shadcn@latest add label
 ```
 
 ### Original components

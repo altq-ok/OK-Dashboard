@@ -90,14 +90,14 @@ class PortfolioDataManager:
             # calendar_events data: Corporate actions or news mock
             return [
                 {
-                    "id": "1",
+                    "event_id": "1",
                     "title": "AAPL Earnings Call",
                     "start_date": "2026-01-15",
                     "description": "Quarterly financial results",
                     "category": "earnings",
                 },
                 {
-                    "id": "2",
+                    "event_id": "2",
                     "title": "FOMC Meeting",
                     "start_date": "2026-01-28",
                     "description": "Interest rate decision",

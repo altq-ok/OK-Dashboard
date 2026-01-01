@@ -27,7 +27,8 @@ class TaskStatus(BaseModel):
 class UserEvent(BaseModel):
     event_id: str = Field(..., description="Unique event ID")
     title: str = Field(..., description="Event title")
-    start: str = Field(..., description="Start date (YYYY-MM-DD)")
-    end: Optional[str] = Field(None, description="End date (YYYY-MM-DD)")
+    start_date: str = Field(..., description="Start date (YYYY-MM-DD)")
+    end_date: Optional[str] = Field(None, description="End date (YYYY-MM-DD)")
     description: Optional[str] = ""
+    category: Optional[str] = ""
     user: str = Field(..., description="User who created this")
