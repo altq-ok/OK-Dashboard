@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useDashboardStore } from '@/store/useDashboardStore';
 import { useDashboardParams } from '@/hooks/use-dashboard-params';
 import { useTask } from '@/hooks/use-task';
-import { WIDGET_REGISTRY, WIDGET_TASK_MAP } from '@/lib/widget-registry';
+import { WIDGET_REGISTRY, WIDGET_PRIMARY_TASK } from '@/lib/widget-registry';
 import { WidgetType } from '@/types/dashboard';
 import {
   DropdownMenu,
@@ -19,17 +19,15 @@ export function WidgetSlot({ index }: { index: number }) {
   const setWidget = useDashboardStore((state) => state.setWidget);
   const widgetConfig = widgetType ? WIDGET_REGISTRY[widgetType] : null;
 
-  const { targetId, versions } = useDashboardParams();
+  const { targetId } = useDashboardParams();
 
   // Get task type for each WidgetType
-  const taskType = widgetType ? WIDGET_TASK_MAP[widgetType] : null;
-  const version = taskType ? versions[taskType as keyof typeof versions] : 'latest';
-
+  const primaryTask = widgetType ? WIDGET_PRIMARY_TASK[widgetType] : '';
   // set targetId = 'ALL' when widgetType = 'home'
   const effectiveTargetId = widgetType === 'home' ? 'ALL' : targetId;
 
-  // Load task data
-  const { status, result } = useTask(effectiveTargetId, taskType || '', version);
+  // Monitor task status
+  const { status, isUpdating } = useTask(effectiveTargetId, primaryTask);
 
   if (!widgetType) {
     return (
@@ -58,8 +56,7 @@ export function WidgetSlot({ index }: { index: number }) {
     );
   }
 
-  const isRunning = status?.status === 'running';
-  const shouldDim = isRunning && !widgetConfig?.disableOpacityOnUpdate;
+  const shouldDim = isUpdating && !widgetConfig?.disableOpacityOnUpdate;
 
   return (
     <div className="h-full w-full p-2">
@@ -68,7 +65,7 @@ export function WidgetSlot({ index }: { index: number }) {
         <div className="flex justify-between items-center mb-4 shrink-0">
           <div className="flex items-center gap-2">
             <h3 className="font-bold uppercase text-xs text-muted-foreground">{widgetType}</h3>
-            {isRunning && (
+            {isUpdating && (
               <span className="flex items-center gap-1 text-[10px] text-blue-500 font-medium animate-pulse">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 UPDATING...
@@ -84,8 +81,14 @@ export function WidgetSlot({ index }: { index: number }) {
         <div
           className={`flex-1 text-sm overflow-auto transition-opacity duration-300 ${shouldDim ? 'opacity-50' : 'opacity-100'}`}
         >
-          {widgetConfig && <widgetConfig.component data={result} status={status} targetId={effectiveTargetId} />}
+          {widgetConfig && <widgetConfig.component targetId={effectiveTargetId} />}
         </div>
+        {/* Progress message when update is running */}
+        {/* {isUpdating && status?.message && (
+          <div className="absolute bottom-4 left-4 right-4 py-1 px-2 bg-blue-500/10 border border-blue-500/20 rounded text-[9px] text-blue-600 font-medium truncate">
+            {status.message}
+          </div>
+        )} */}
       </div>
     </div>
   );
