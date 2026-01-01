@@ -28,7 +28,7 @@ export type DataType = (typeof SUPPORTED_DATA_TYPES)[number]['id'];
 export const WIDGET_PRIMARY_TASK: Record<WidgetType, TaskType | 'summary' | 'none'> = {
   home: 'summary',
   analytics: 'pricing',
-  userList: 'event',
+  calendar: 'event',
   logs: 'guideline',
   settings: 'none',
 } as const;
@@ -47,7 +47,7 @@ interface WidgetConfig {
 export const WIDGET_REGISTRY: Record<WidgetType, WidgetConfig> = {
   home: { component: HomeWidget, label: 'Home', icon: Home, disableOpacityOnUpdate: true },
   analytics: { component: AnalyticsWidget, label: 'Analytics', icon: BarChart3 },
-  userList: { component: CalendarWidget, label: 'Calendar', icon: Calendar },
+  calendar: { component: CalendarWidget, label: 'Calendar', icon: Calendar },
   logs: { component: TBIWidget, label: 'Validation', icon: ShieldCheck },
   settings: { component: TBIWidget, label: 'Settings', icon: Settings },
 };

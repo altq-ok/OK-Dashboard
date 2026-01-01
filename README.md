@@ -64,6 +64,8 @@ Once removed, run below command in the project root directory.
 pnpm install
 ```
 
+This will install all dependencies together, so you don't need to run individual package installation commands below.
+
 ### Add `.prettierrc`
 
 If you don't have any preference, you can copy `.prettierrc` in `my-turborepo`.
@@ -170,7 +172,7 @@ Layout patterns etc. are saved under `apps/web/lib` (e.g. `layout-templates.ts`)
 
 ### Calendar widget
 
-Install `schedule-x` with below command:
+Install `Schedule-X` with below command:
 
 ```bash
 install @schedule-x/react @schedule-x/calendar @schedule-x/theme-default @schedule-x/event-modal

@@ -27,11 +27,19 @@ export const DASHBOARD_PRESETS: DashboardPreset[] = [
     targetId: 'AAPL',
   },
   {
+    id: 'month-view',
+    title: 'Event Calendar',
+    description: 'Month view of events using Schedule-X.',
+    layoutId: 'single',
+    widgets: ['calendar'],
+    targetId: 'ALL',
+  },
+  {
     id: 'compliance',
     title: 'Compliance Dashboard',
     description: 'Monitor guideline violations and upcoming corporate events.',
     layoutId: 'split-h',
-    widgets: ['logs', 'userList'],
+    widgets: ['logs', 'calendar'],
     targetId: 'ALL',
   },
 ];

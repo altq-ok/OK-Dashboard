@@ -23,8 +23,9 @@ export function WidgetSlot({ index }: { index: number }) {
 
   // Get task type for each WidgetType
   const primaryTask = widgetType ? WIDGET_PRIMARY_TASK[widgetType] : '';
-  // set targetId = 'ALL' when widgetType = 'home'
-  const effectiveTargetId = widgetType === 'home' ? 'ALL' : targetId;
+  // set targetId = 'ALL' for certain widget types
+  const setTargetIdAsAll = new Set<string>(['home', 'calendar']);
+  const effectiveTargetId = widgetType != null && setTargetIdAsAll.has(widgetType) ? 'ALL' : targetId;
 
   // Monitor task status
   const { status, isUpdating } = useTask(effectiveTargetId, primaryTask);
