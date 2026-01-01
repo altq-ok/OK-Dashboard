@@ -67,6 +67,9 @@ importers:
       '@schedule-x/event-modal':
         specifier: ^3.5.1
         version: 3.5.1(@preact/signals@2.5.1(preact@10.28.1))(preact@10.28.1)
+      '@schedule-x/events-service':
+        specifier: ^3.5.1
+        version: 3.5.1
       '@schedule-x/react':
         specifier: ^3.5.0
         version: 3.5.0(@schedule-x/calendar@3.5.1(@preact/signals@2.5.1(preact@10.28.1))(preact@10.28.1)(temporal-polyfill@0.3.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -109,6 +112,9 @@ importers:
       tailwind-merge:
         specifier: ^3.4.0
         version: 3.4.0
+      temporal-polyfill:
+        specifier: ^0.3.0
+        version: 0.3.0
       zustand:
         specifier: ^5.0.9
         version: 5.0.9(@types/react@19.2.2)(react@19.2.3)
@@ -1065,6 +1071,9 @@ packages:
     peerDependencies:
       '@preact/signals': ^2.0.2
       preact: ^10.19.2
+
+  '@schedule-x/events-service@3.5.1':
+    resolution: {integrity: sha512-KK8llD+z57Sl4xC/9HJjeS/O5kxP99QvzC1ylB/DbUMrGIx5E4RiGOhupsR6RGyt0rONm+iFdMj2VnjCUFaMsw==}
 
   '@schedule-x/react@3.5.0':
     resolution: {integrity: sha512-E40qAuioWWZjjxt54X98eeQzCde+g9cYKcTF0OPqHWpCul/PiL+nPDwql1mpv4xDiqVsMNASqIGhBYU16yDa8g==}
@@ -3621,6 +3630,8 @@ snapshots:
     dependencies:
       '@preact/signals': 2.5.1(preact@10.28.1)
       preact: 10.28.1
+
+  '@schedule-x/events-service@3.5.1': {}
 
   '@schedule-x/react@3.5.0(@schedule-x/calendar@3.5.1(@preact/signals@2.5.1(preact@10.28.1))(preact@10.28.1)(temporal-polyfill@0.3.0))(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:

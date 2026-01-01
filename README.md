@@ -177,7 +177,7 @@ Layout patterns etc. are saved under `apps/web/lib` (e.g. `layout-templates.ts`)
 Install `Schedule-X` with below command:
 
 ```bash
-install @schedule-x/react @schedule-x/calendar @schedule-x/theme-default @schedule-x/event-modal
+install @schedule-x/react @schedule-x/calendar @schedule-x/theme-default @schedule-x/event-modal @schedule-x/events-service temporal-polyfill
 ```
 
 ### Type definitions

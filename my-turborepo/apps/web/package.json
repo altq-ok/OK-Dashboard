@@ -24,6 +24,7 @@
     "@repo/ui": "workspace:*",
     "@schedule-x/calendar": "^3.5.1",
     "@schedule-x/event-modal": "^3.5.1",
+    "@schedule-x/events-service": "^3.5.1",
     "@schedule-x/react": "^3.5.0",
     "@schedule-x/theme-default": "^3.5.1",
     "@tanstack/react-query": "^5.90.16",
@@ -38,6 +39,7 @@
     "react-resizable-panels": "^4.0.15",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
+    "temporal-polyfill": "^0.3.0",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
