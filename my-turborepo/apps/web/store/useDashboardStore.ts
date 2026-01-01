@@ -5,11 +5,13 @@ import { DASHBOARD_TEMPLATES } from '@/lib/layout-templates';
 
 interface DashboardState {
   layouts: Record<string, LayoutNode>;
+  lastLayoutId: string | null;
   activeWidgets: (WidgetType | null)[];
   updateLayoutSize: (templateId: string, groupId: string, sizes: Record<string, number>) => void;
   resetLayout: (templateId: string) => void;
   setWidget: (index: number, type: WidgetType | null) => void;
   syncWidgetsCount: (count: number) => void;
+  setLastLayoutId: (id: string) => void;
 }
 
 export const useDashboardStore = create<DashboardState>()(
@@ -17,6 +19,7 @@ export const useDashboardStore = create<DashboardState>()(
     (set) => ({
       layouts: {},
       activeWidgets: [],
+      lastLayoutId: null,
 
       updateLayoutSize: (templateId, groupId, sizes) =>
         set((state) => {
@@ -71,6 +74,8 @@ export const useDashboardStore = create<DashboardState>()(
           while (synced.length < count) synced.push(null);
           return { activeWidgets: synced };
         }),
+
+      setLastLayoutId: (id) => set({ lastLayoutId: id }),
     }),
     {
       name: 'dashboard-storage',
