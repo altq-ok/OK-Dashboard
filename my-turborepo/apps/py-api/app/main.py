@@ -25,7 +25,6 @@ from app.schemas.task import TaskParams, TaskStatus
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-
 # Configuration
 home = pathlib.Path(expanduser("~"))
 dev_dir = home / "Dev"
