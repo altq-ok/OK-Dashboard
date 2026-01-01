@@ -2,7 +2,10 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { CircleCheckIcon, CircleHelpIcon, CircleIcon } from 'lucide-react';
+import { useQueryState } from 'nuqs';
+import { useDashboardStore } from '@/store/useDashboardStore';
+import { DASHBOARD_PRESETS, DashboardPreset } from '@/lib/layout-widget-presets';
+import { Home, CircleCheckIcon, CircleHelpIcon, CircleIcon } from 'lucide-react';
 
 import {
   NavigationMenu,
@@ -53,39 +56,52 @@ const components: { title: string; href: string; description: string }[] = [
 
 export function DashboardNavigationMenu() {
   const isMobile = useIsMobile();
+  const setAllWidgets = useDashboardStore((state) => state.setAllWidgets);
+  const [, setLayout] = useQueryState('layout');
+  const [, setTarget] = useQueryState('target');
+
+  const applyPreset = (preset: DashboardPreset) => {
+    setLayout(preset.layoutId);
+    setTarget(preset.targetId);
+    setAllWidgets(preset.widgets);
+  };
 
   return (
     <NavigationMenu viewport={isMobile}>
       <NavigationMenuList className="flex-wrap">
         <NavigationMenuItem>
-          <NavigationMenuTrigger>Home</NavigationMenuTrigger>
+          <NavigationMenuTrigger>Workspaces</NavigationMenuTrigger>
           <NavigationMenuContent>
-            <ul className="grid gap-2 md:w-100 lg:w-125 lg:grid-cols-[.75fr_1fr]">
+            <ul className="grid gap-2 p-4 md:w-100 lg:w-125 lg:grid-cols-[.75fr_1fr]">
+              {/* Home preset as a big button */}
               <li className="row-span-3">
-                <NavigationMenuLink asChild>
-                  <Link
-                    href="/"
-                    className="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-linear-to-b p-4 no-underline outline-hidden transition-all duration-200 select-none focus:shadow-md md:p-6"
-                  >
-                    <div className="mb-2 text-lg font-medium sm:mt-4">shadcn/ui</div>
-                    <p className="text-muted-foreground text-sm leading-tight">
-                      Beautifully designed components built with Tailwind CSS.
-                    </p>
-                  </Link>
-                </NavigationMenuLink>
+                <button
+                  onClick={() => applyPreset(DASHBOARD_PRESETS[0])}
+                  className="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-linear-to-b p-4 no-underline outline-hidden transition-all duration-200 select-none hover:shadow-md md:p-6 text-left"
+                >
+                  <Home className="h-6 w-6 mb-2 text-muted-foreground transition-all" />
+                  <div className="mb-2 text-lg font-medium">{DASHBOARD_PRESETS[0].title}</div>
+                  <p className="text-muted-foreground text-sm leading-tight">{DASHBOARD_PRESETS[0].description}</p>
+                </button>
               </li>
-              <ListItem href="/docs" title="Introduction">
-                Re-usable components built using Radix UI and Tailwind CSS.
-              </ListItem>
-              <ListItem href="/docs/installation" title="Installation">
-                How to install dependencies and structure your app.
-              </ListItem>
-              <ListItem href="/docs/primitives/typography" title="Typography">
-                Styles for headings, paragraphs, lists...etc
-              </ListItem>
+
+              {/* Other presets as list */}
+              {DASHBOARD_PRESETS.slice(1).map((preset) => (
+                <li key={preset.id}>
+                  <button
+                    onClick={() => applyPreset(preset)}
+                    className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground text-left w-full"
+                  >
+                    <div className="text-sm font-medium leading-none">{preset.title}</div>
+                    <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{preset.description}</p>
+                  </button>
+                </li>
+              ))}
             </ul>
           </NavigationMenuContent>
         </NavigationMenuItem>
+
+        {/* --- Other menus don't work but as placeholders --- */}
         <NavigationMenuItem>
           <NavigationMenuTrigger>Components</NavigationMenuTrigger>
           <NavigationMenuContent>

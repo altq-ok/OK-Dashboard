@@ -12,6 +12,7 @@ interface DashboardState {
   setWidget: (index: number, type: WidgetType | null) => void;
   syncWidgetsCount: (count: number) => void;
   setLastLayoutId: (id: string) => void;
+  setAllWidgets: (types: (WidgetType | null)[]) => void;
 }
 
 export const useDashboardStore = create<DashboardState>()(
@@ -76,6 +77,8 @@ export const useDashboardStore = create<DashboardState>()(
         }),
 
       setLastLayoutId: (id) => set({ lastLayoutId: id }),
+
+      setAllWidgets: (types: (WidgetType | null)[]) => set({ activeWidgets: types }),
     }),
     {
       name: 'dashboard-storage',
