@@ -40,57 +40,54 @@ class PortfolioDataManager:
         target_id = params.get("target_id") or "ALL"
         task_type = params.get("task_type", "pricing")
 
-        print(f"Target ID = {target_id}")
-        print(f"Task Type = {task_type}")
-        print(f"params = {params}")
-
         time.sleep(5)  # Simulate heavy task
 
-        # 1. Resolve output path: snapshots/{target_id}_{task_type}/
-        task_id = f"{target_id}_{task_type}"
-        snapshot_dir = self.shared_root / "snapshots" / task_id
-        snapshot_dir.mkdir(parents=True, exist_ok=True)
+        outputs = []
+        if task_type == "pricing":
+            outputs = ["prices", "fx_rates"]
+        elif task_type == "event":
+            outputs = ["calendar_events"]
+        else:
+            outputs = [task_type]
 
-        # 2. Simulate processing time based on task type
-        # Pricing is fast, while Guideline/Event might take longer
-        wait_times = {"pricing": 2, "event": 5, "guideline": 8}
-        processing_time = wait_times.get(task_type, 3)
-
-        logger.info(f"Mock Engine: Starting {task_type} for {target_id} (Estimated {processing_time}s)...")
-        time.sleep(processing_time)  # Progress bar should be visible on UI
-
-        # 3. Generate Mock Data mimicking different library outputs
-        data = self._generate_mock_data(target_id, task_type)
-        df = self.pd.DataFrame(data)
-
-        # 4. Save as Parquet with timestamp (Format: YYYYMMDD_HHMMSS.parquet)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_path = snapshot_dir / f"{timestamp}.parquet"
 
-        # engine='pyarrow' is recommended for performance
-        df.to_parquet(file_path, engine="pyarrow", index=False)
+        for data_type in outputs:
+            save_dir = self.shared_root / "snapshots" / data_type / target_id
+            save_dir.mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"Mock Engine: Task complete. Saved to {file_path}")
+            file_path = save_dir / f"{timestamp}.parquet"
+
+            df = self._generate_mock_data(target_id, data_type)
+            df.to_parquet(file_path, engine="pyarrow", index=False)
+            logger.info(f"Saved {data_type} to {file_path}")
+
         return str(file_path)
 
-    def _generate_mock_data(self, target_id: str, task_type: str) -> list:
+    def _generate_mock_data(self, target_id: str, data_type: str) -> list:
         """Helper to create realistic dummy records."""
         now = datetime.now().isoformat()
 
-        if task_type == "pricing":
-            # Pricing data: Target price and historical mock
+        if data_type == "prices":
+            # prices data: Target price and historical mock
             return [
                 {"fund_id": target_id, "field": "PX_LAST", "value": 150.0 + self.np.random.rand(), "date": now},
                 {"fund_id": target_id, "field": "PX_MID", "value": 149.5 + self.np.random.rand(), "date": now},
             ]
-        elif task_type == "event":
-            # Event data: Corporate actions or news mock
+        elif data_type == "fx_rates":
+            # fx_rates data: Target price and historical mock
+            return [
+                {"fund_id": target_id, "field": "PX_LAST", "value": 150.0 + self.np.random.rand(), "date": now},
+                {"fund_id": target_id, "field": "PX_MID", "value": 149.5 + self.np.random.rand(), "date": now},
+            ]
+        elif data_type == "calendar_events":
+            # calendar_events data: Corporate actions or news mock
             return [
                 {"fund_id": target_id, "event_type": "DIVIDEND", "message": "Expected 0.5 USD", "impact": "High"},
                 {"fund_id": target_id, "event_type": "EARNINGS", "message": "Release on Friday", "impact": "Medium"},
             ]
         else:
-            # Guideline data: Compliance check mock
+            # guidelines data: Compliance check mock
             return [
                 {"fund_id": target_id, "rule": "MAX_EQUITY_LIMIT", "status": "PASS", "limit": 0.40, "current": 0.32},
                 {"fund_id": target_id, "rule": "MIN_CASH_LIMIT", "status": "WARN", "limit": 0.05, "current": 0.051},

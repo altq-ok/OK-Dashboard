@@ -139,17 +139,17 @@ async def get_task_status(target_id: str, task_type: str, request: Request):
     return relevant[0]
 
 
-@app.get("/tasks/{target_id}/{task_type}/snapshots")
-async def get_task_snapshots(target_id: str, task_type: str, request: Request):
+@app.get("/data/{target_id}/{data_type}/snapshots")
+async def get_data_snapshots(target_id: str, data_type: str, request: Request):
     """
-    Returns a list of available parquet snapshot filenames for a task.
+    Returns a list of available parquet snapshot filenames for a data type.
     """
-    snapshots = request.app.state.data_manager.get_snapshots(task_type, target_id)
+    snapshots = request.app.state.data_manager.get_snapshots(data_type, target_id)
     return {"snapshots": snapshots}
 
 
-@app.get("/tasks/{target_id}/{task_type}/data")
-async def get_task_data(target_id: str, task_type: str, request: Request, version: str = "latest"):
+@app.get("/data/{target_id}/{data_type}/content")
+async def get_data_content(target_id: str, data_type: str, request: Request, version: str = "latest"):
     """
     Returns the actual content of a parquet snapshot as a JSON-serializable list.
     Supports historical data retrieval via the 'version' query parameter.
@@ -157,9 +157,9 @@ async def get_task_data(target_id: str, task_type: str, request: Request, versio
     data_manager = request.app.state.data_manager
     try:
         if version == "latest":
-            data = data_manager.get_latest_data(task_type, target_id)
+            data = data_manager.get_latest_data(data_type, target_id)
         else:
-            df = data_manager.load_parquet(task_type, target_id, version)
+            df = data_manager.load_parquet(data_type, target_id, version)
             data = df.to_dict(orient="records")
         return {"data": data}
     except FileNotFoundError:
