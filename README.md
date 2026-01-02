@@ -137,7 +137,7 @@ Refer to this **[page](https://ui.shadcn.com/docs/components)** for available co
 
 This project installs:
 
-```bash
+```text
 pnpm dlx shadcn@latest add sidebar
 pnpm dlx shadcn@latest add navigation-menu
 pnpm dlx shadcn@latest add sonner
