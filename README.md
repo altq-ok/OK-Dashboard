@@ -176,7 +176,7 @@ Layout patterns etc. are saved under `apps/web/lib` (e.g. `layout-templates.ts`)
 
 ### Calendar widget
 
-Install `Schedule-X` with below command:
+Calendar widget is built on top of `Schedule-X`. Install the package with below command:
 
 ```bash
 pnpm install @schedule-x/react @schedule-x/calendar @schedule-x/theme-default @schedule-x/theme-shadcn @schedule-x/event-modal @schedule-x/events-service temporal-polyfill
