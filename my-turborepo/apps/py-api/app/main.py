@@ -33,8 +33,8 @@ dev_dir = home / "Dev"
 if not dev_dir.exists():
     dev_dir = home / "Documents" / "Dev"
 
-SHARED_DIR = f"{str(dev_dir)}\\TypeScript\\Shared"
-LOCAL_DIR = f"{str(dev_dir)}\\TypeScript\\Local"
+SHARED_DIR = str(dev_dir / "TypeScript" / "Shared")
+LOCAL_DIR = str(dev_dir / "TypeScript" / "Local")
 USER_NAME = os.getlogin()
 # Directly write to the shared drive as this should be small and not frequent
 USER_DATA_DIR = pathlib.Path(SHARED_DIR) / "user_data"
