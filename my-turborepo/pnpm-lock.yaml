@@ -79,6 +79,9 @@ importers:
       '@schedule-x/theme-default':
         specifier: ^3.5.1
         version: 3.5.1
+      '@schedule-x/theme-shadcn':
+        specifier: ^3.5.1
+        version: 3.5.1
       '@tanstack/react-query':
         specifier: ^5.90.16
         version: 5.90.16(react@19.2.3)
@@ -1100,6 +1103,9 @@ packages:
 
   '@schedule-x/theme-default@3.5.1':
     resolution: {integrity: sha512-zLBiPoRPxMPG1tHWH1fmyR+5IICXx0w9crmBIfxlOBxMGh6ug0/YhuqgV56DaHtkvJdmvuUiZ8FdaKNQ1D7c4w==}
+
+  '@schedule-x/theme-shadcn@3.5.1':
+    resolution: {integrity: sha512-tacHPP9eWEOc6/zzTZVrtULO57PbT4P0FlWZrg8GfnbyVlDjPYrj9x3JPd//AStAcOzc+5bgYOPP09G8Rfxflw==}
 
   '@standard-schema/spec@1.0.0':
     resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
@@ -3685,6 +3691,8 @@ snapshots:
       react-dom: 19.2.3(react@19.2.3)
 
   '@schedule-x/theme-default@3.5.1': {}
+
+  '@schedule-x/theme-shadcn@3.5.1': {}
 
   '@standard-schema/spec@1.0.0': {}
 
