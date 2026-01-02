@@ -61,15 +61,17 @@ export function CalendarWidget({ targetId }: WidgetProps) {
     return <div className="h-full w-full flex items-center justify-center animate-pulse text-xs">Loading...</div>;
   }
   return (
-    <div className="h-full w-full p-1 bg-background relative flex flex-col overflow-hidden">
+    <div className="h-full w-full p-1 relative flex flex-col overflow-hidden bg-transparent">
       <style jsx global>
         {`
           .sx-react-calendar-wrapper,
           .sx__calendar {
-            height: 100%;
-            width: 100%;
-            border: none;
-            background-color: transparent !important;
+            height: 100% !important;
+            border: none !important;
+          }
+          .dark .sx-react-calendar-wrapper,
+          .dark .sx__calendar {
+            background: transparent !important;
           }
         `}
       </style>
