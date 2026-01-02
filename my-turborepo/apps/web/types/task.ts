@@ -20,8 +20,10 @@ export interface TaskStatus {
 export interface UserEvent {
   event_id: string;
   title: string;
-  start_date: string;
-  end_date?: string;
+  start: string; // YYYY-MM-DD
+  start_time?: string; // HH:mm
+  end?: string; // YYYY-MM-DD
+  end_time?: string; // HH:mm
   description?: string;
   category?: string;
   user: string;

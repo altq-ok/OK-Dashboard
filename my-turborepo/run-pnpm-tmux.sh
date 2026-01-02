@@ -15,15 +15,18 @@ kill_port () {
 kill_port 3000 # Next.js
 kill_port 8000 # Uvicorn
 
-# Re-use an existing session if exists
 if tmux has-session -t "$SESSION" 2>/dev/null; then
-  tmux attach -t "$SESSION"
-  exit 0
+  # Re-use an existing session if exists
+  if [ -n "$TMUX" ]; then
+    tmux switch-client -t "$SESSION"
+  else
+    tmux attach -t "$SESSION"
+  fi
+else
+  # Start new tmux session
+  WINDOW="$SESSION" # Same name as there is only one window
+  tmux new-session -d -s "$SESSION" -n "$WINDOW"
 fi
-
-# Start new tmux session
-WINDOW="$SESSION" # Same name as there is only one window
-tmux new-session -d -s "$SESSION" -n "$WINDOW"
 
 # frontend
 tmux send-keys -t "$SESSION" \
@@ -35,4 +38,3 @@ tmux send-keys -t "$SESSION" \
   "cd apps/py-api && uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload" C-m
 
 tmux select-layout even-horizontal
-tmux attach -t "$SESSION"

@@ -57,6 +57,7 @@ class PortfolioDataManager:
         print(f"Data types: {data_types}")
         print(f"Extra params: {params}")
 
+        file_path = ""
         for data_type in data_types:
             save_dir = self.shared_root / "snapshots" / data_type / target_id
             save_dir.mkdir(parents=True, exist_ok=True)
@@ -92,14 +93,14 @@ class PortfolioDataManager:
                 {
                     "event_id": "1",
                     "title": "AAPL Earnings Call",
-                    "start_date": "2026-01-15",
+                    "start": "2026-01-15",
                     "description": "Quarterly financial results",
                     "category": "earnings",
                 },
                 {
                     "event_id": "2",
                     "title": "FOMC Meeting",
-                    "start_date": "2026-01-28",
+                    "start": "2026-01-28",
                     "description": "Interest rate decision",
                     "category": "macro",
                 },

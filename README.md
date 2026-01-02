@@ -149,6 +149,8 @@ pnpm dlx shadcn@latest add card
 pnpm dlx shadcn@latest add scroll-area
 pnpm dlx shadcn@latest add dialog
 pnpm dlx shadcn@latest add label
+pnpm dlx shadcn@latest add textarea
+pnpm dlx shadcn@latest add select
 ```
 
 ### Original components

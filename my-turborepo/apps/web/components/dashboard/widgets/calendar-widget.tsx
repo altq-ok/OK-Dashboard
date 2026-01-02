@@ -10,30 +10,51 @@ import { createViewMonthGrid } from '@schedule-x/calendar';
 import { createEventModalPlugin } from '@schedule-x/event-modal';
 import { createEventsServicePlugin } from '@schedule-x/events-service';
 import { WidgetProps } from '@/lib/widget-registry';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Calendar as CalendarIcon, Plus, Info } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Calendar as CalendarIcon, Plus, Info, Clock, User, X, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserEvent } from '@/types/task';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 
-// CSSの読み込み
 import '@schedule-x/theme-default/dist/index.css';
 
-/**
- * どんな文字列からでも安全に Temporal.PlainDate を作成する関数
- */
-function toTemporalDate(dateStr: any) {
+// To set different colors for different categories
+const CATEGORIES = [
+  { id: 'earnings', label: 'Earnings', color: '#3b82f6' },
+  { id: 'macro', label: 'Macro', color: '#f59e0b' },
+  { id: 'meeting', label: 'Meeting', color: '#a855f7' },
+  { id: 'holiday', label: 'Holiday', color: '#10b981' },
+  { id: 'other', label: 'Other', color: '#64748b' },
+  { id: 'error', label: 'Data Error', color: '#ef4444' },
+];
+
+function parseToTemporalWithValidation(dateStr: string | undefined | null, timeStr?: string | null) {
   const today = new Date().toISOString().split('T')[0];
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const d = (dateStr || '').substring(0, 10);
+  const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(d);
   try {
-    const clean = String(dateStr || today).substring(0, 10);
-    return Temporal.PlainDate.from(clean);
+    if (!isValidDate) throw new Error('Invalid Date');
+    // Normalize time - allow HH:mm only
+    let t = timeStr?.trim() || '';
+    const hasTime = /^([01]\d|2[0-3]):[0-5]\d/.test(t);
+    if (hasTime) {
+      const cleanTime = t.substring(0, 5); // "HH:mm"
+      return { value: Temporal.ZonedDateTime.from(`${d}T${cleanTime}:00[${tz}]`), isError: false };
+    } else {
+      return { value: Temporal.PlainDate.from(d), isError: false };
+    }
   } catch (e) {
-    return Temporal.PlainDate.from(today);
+    // On exception, returns today with an error flag
+    return { value: Temporal.PlainDate.from(today), isError: true };
   }
 }
 
@@ -41,28 +62,26 @@ export function CalendarWidget({ targetId }: WidgetProps) {
   const queryClient = useQueryClient();
   const { versions } = useDashboardParams();
   const { resolvedTheme } = useTheme();
+  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
 
-  // マウント後の今日の日付（比較・表示用）
-  const [todayStr] = useState(() => new Date().toISOString().split('T')[0]);
-
-  // UI States
-  const [selectedDate, setSelectedDate] = useState(todayStr);
+  // UI states
+  const [selectedDate, setSelectedDate] = useState(today);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isAddOpen, setIsAddOpen] = useState(false);
+
+  // Generated from states
   const [newTitle, setNewTitle] = useState('');
+  const [startTime, setStartTime] = useState('00:00');
+  const [endTime, setEndTime] = useState('23:59');
+  const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('other');
 
-  // 1. Plugins のインスタンスを固定 (useStateで一度だけ作成)
+  // Initialize event service to set events to calendar
   const [eventsService] = useState(() => createEventsServicePlugin());
-  const [eventModal] = useState(() => createEventModalPlugin());
 
-  // 2. データの取得
-  const { result: rawSystemEvents, isDataLoading: isSysLoading } = useSnapshot(
-    'ALL',
-    'calendar_events',
-    versions.calendar_events,
-  );
-
-  const { data: rawUserEvents = [], isLoading: isUserLoading } = useQuery<UserEvent[]>({
+  // Fetch data
+  const { result: rawSystemEvents } = useSnapshot('ALL', 'calendar_events', versions.calendar_events);
+  const { data: rawUserEvents = [] } = useQuery<UserEvent[]>({
     queryKey: ['user-events'],
     queryFn: async () => {
       const res = await fetch('http://localhost:8000/data/user-events');
@@ -70,37 +89,41 @@ export function CalendarWidget({ targetId }: WidgetProps) {
     },
   });
 
-  // 3. イベントデータの整形 (Temporal オブジェクトへ変換)
+  // Process data and combine system and user events
   const combinedEvents = useMemo(() => {
-    // システムイベント
-    const sys = (rawSystemEvents || []).map((e: any, i: number) => ({
-      id: String(e.event_id || `sys-${i}`),
-      title: String(e.title || e.event_name || 'System Event'),
-      start: toTemporalDate(e.start_date),
-      end: toTemporalDate(e.end_date || e.start_date),
-      _isSystem: true,
-      backgroundColor: '#3b82f6',
-    }));
+    const mapEvent = (e: any, isSystem: boolean, index: number) => {
+      const startRes = parseToTemporalWithValidation(e.start, e.start_time);
+      // fallback to start when end is missing
+      const endRes = parseToTemporalWithValidation(e.end || e.start, e.end_time || e.start_time);
+      const isError = startRes.isError || endRes.isError;
+      const finalStart = startRes.value;
+      const finalEnd = isError ? startRes.value : endRes.value;
+      return {
+        ...e, // description, category etc.
+        id: isSystem ? `sys-${e.event_id || index}` : String(e.event_id),
+        title: isError ? `[!] ERROR: ${e.title}` : e.title,
+        start: finalStart,
+        end: finalEnd,
+        _isSystem: isSystem,
+        _isError: isError,
+        backgroundColor: isError
+          ? '#ef4444'
+          : isSystem
+            ? '#3b82f6'
+            : CATEGORIES.find((c) => c.id === e.category)?.color || '#a855f7',
+      };
+    };
+    return [
+      ...(rawSystemEvents || []).map((e: any, i: number) => mapEvent(e, true, i)),
+      ...(rawUserEvents || []).map((e: any, i: number) => mapEvent(e, false, i)),
+    ];
+  }, [rawSystemEvents, rawUserEvents, today]);
 
-    // ユーザーイベント (UserEvent 型)
-    const user = (rawUserEvents || []).map((e: UserEvent) => ({
-      id: String(e.event_id),
-      title: String(e.title || 'User Event'),
-      start: toTemporalDate(e.start_date),
-      end: toTemporalDate(e.start_date),
-      user: e.user,
-      _isSystem: false,
-      backgroundColor: '#a855f7',
-    }));
-
-    return [...sys, ...user];
-  }, [rawSystemEvents, rawUserEvents]);
-
-  // 4. カレンダーアプリの初期化
+  // Initialize calendar app
   const calendar = useNextCalendarApp({
     views: [createViewMonthGrid()],
-    events: combinedEvents, // 初期ロード用
-    plugins: [eventsService, eventModal],
+    events: combinedEvents,
+    plugins: [eventsService, createEventModalPlugin()],
     isDark: resolvedTheme === 'dark',
     locale: 'en-US',
     defaultView: 'month-grid',
@@ -112,16 +135,16 @@ export function CalendarWidget({ targetId }: WidgetProps) {
     },
   });
 
-  // 5. 非同期データの同期 (eventsService を使用)
+  // Sync asynchronous data and display events
   useEffect(() => {
-    if (calendar && eventsService && combinedEvents.length >= 0) {
+    if (calendar && eventsService) {
       eventsService.set(combinedEvents);
     }
   }, [combinedEvents, calendar, eventsService]);
 
-  // 6. 保存ロジック (Mutation)
+  // Mutation logic to save user events
   const saveMutation = useMutation({
-    mutationFn: async (newEvent: UserEvent) => {
+    mutationFn: async (newEvent: any) => {
       const res = await fetch('http://localhost:8000/data/user-events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,144 +156,197 @@ export function CalendarWidget({ targetId }: WidgetProps) {
       queryClient.invalidateQueries({ queryKey: ['user-events'] });
       setIsAddOpen(false);
       setNewTitle('');
-      toast.success('Event synced to team');
+      setDescription('');
+      toast.success('Event saved');
     },
   });
 
-  const handleSave = () => {
-    if (!newTitle.trim()) return;
-    saveMutation.mutate({
-      event_id: crypto.randomUUID(),
-      title: newTitle.trim(),
-      start_date: selectedDate,
-      user: 'UserA', // ログインユーザー名
-      description: '',
-    });
-  };
-
-  // 選択日のイベントリスト
+  // Get event list for selected date
   const selectedDayEvents = useMemo(() => {
     return combinedEvents.filter((e) => {
-      // Temporal オブジェクトを文字列に戻して比較
-      return e.start.toString() === selectedDate;
+      // Convert Temporal object to string before comparison
+      return e.start.toString().startsWith(selectedDate);
     });
   }, [combinedEvents, selectedDate]);
 
   return (
     <div className="h-full w-full p-1 bg-background relative flex flex-col overflow-hidden">
-      {/* 
-        テーマ切替時に key を変えて再マウントさせることで、
-        Schedule-X の内部 CSS 変数と isDark を確実に反映させます 
-      */}
       <div
-        key={`calendar-root-${resolvedTheme}-${combinedEvents.length}`}
+        key={`cal-${resolvedTheme}-${combinedEvents.length}`}
         className="flex-1 rounded-xl border overflow-hidden relative shadow-inner sx-react-calendar-wrapper"
         style={{ height: '100%' }}
       >
         <ScheduleXCalendar calendarApp={calendar} />
-
-        {(isSysLoading || isUserLoading) && (
-          <div className="absolute inset-0 z-50 bg-background/40 backdrop-blur-[1px] flex items-center justify-center">
-            <div className="text-[10px] font-black tracking-[0.2em] text-muted-foreground animate-pulse uppercase">
-              Syncing...
-            </div>
-          </div>
-        )}
       </div>
-
-      {/* --- Dialogs --- */}
-
-      {/* 1. Zoom-in View (日次詳細) */}
+      {/* --- Detail View --- */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="sm:max-w-[400px] gap-0 p-0 overflow-hidden border-none shadow-2xl">
-          <DialogHeader className="p-6 bg-blue-600 text-white flex-row items-center justify-between space-y-0">
+        <DialogContent className="sm:max-w-[450px] gap-0 p-0 overflow-hidden border-none shadow-2xl">
+          <div className="p-6 bg-blue-600 text-white relative flex justify-between items-center">
             <div className="flex items-center gap-2">
               <CalendarIcon className="h-5 w-5 opacity-80" />
               <DialogTitle className="text-xl font-bold tracking-tight">{selectedDate}</DialogTitle>
             </div>
-            <Badge variant="outline" className="text-white border-white/30 bg-white/10 font-mono">
-              {selectedDayEvents.length} Events
-            </Badge>
-          </DialogHeader>
+            <div className="flex items-center gap-4 mr-4">
+              <Badge variant="outline" className="text-white border-white/30 bg-white/10">
+                {selectedDayEvents.length} Events
+              </Badge>
+            </div>
+          </div>
 
-          <div className="p-6 bg-card">
-            <div className="space-y-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
+          <ScrollArea className="max-h-[60vh] p-6 bg-card">
+            <div className="space-y-4 pr-3 text-card-foreground">
               {selectedDayEvents.length > 0 ? (
-                selectedDayEvents.map((e) => (
-                  <div
-                    key={e.id}
-                    className="p-3 rounded-xl border bg-muted/30 flex items-start gap-3 transition-colors hover:bg-muted/50"
-                  >
+                selectedDayEvents.map((e) => {
+                  const isoStr = e.start.toString(); // "2026-01-15" or "2026-01-15T09:00:00+09:00..."
+                  const displayTime = isoStr.includes('T') ? isoStr.split('T')[1].substring(0, 5) : 'All Day';
+                  return (
                     <div
+                      key={e.id}
                       className={cn(
-                        'mt-1.5 h-2.5 w-2.5 rounded-full shrink-0',
-                        e._isSystem ? 'bg-blue-500' : 'bg-purple-500',
+                        'p-4 rounded-xl border flex flex-col gap-2 transition-all hover:shadow-md',
+                        e._isError ? 'bg-red-500/5 border-red-500/30' : 'bg-muted/30 border-muted',
                       )}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold leading-tight">{e.title}</p>
-                      <p className="text-[10px] text-muted-foreground mt-1 uppercase font-semibold">
-                        {e._isSystem ? 'Market System' : `Shared by: ${e.user || 'Unknown'}`}
-                      </p>
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={cn('h-2.5 w-2.5 rounded-full', e._isError ? 'bg-red-500 animate-pulse' : '')}
+                            style={!e._isError ? { backgroundColor: e.backgroundColor } : {}}
+                          />
+                          <span className={cn('text-sm font-bold leading-tight', e._isError && 'text-red-600')}>
+                            {e.title}
+                          </span>
+                        </div>
+                        <Badge
+                          variant="secondary"
+                          className="text-[9px] uppercase font-bold tracking-tighter tabular-nums"
+                        >
+                          {displayTime}
+                        </Badge>
+                      </div>
+                      {e.description && (
+                        <p className="text-xs text-muted-foreground pl-4.5 border-l-2 border-muted ml-1 leading-relaxed">
+                          {e.description}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between mt-1 pl-1">
+                        <div className="flex items-center gap-1 text-[9px] text-muted-foreground uppercase font-bold tracking-wider">
+                          <User className="h-3 w-3" /> {e._isSystem ? 'System' : e.user}
+                        </div>
+                        {e._isError && <AlertCircle className="h-3.5 w-3.5 text-red-500" />}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
-                <div className="text-center py-10 flex flex-col items-center gap-2">
-                  <Info className="h-8 w-8 opacity-10" />
-                  <p className="text-xs text-muted-foreground italic">No events scheduled for this day.</p>
+                <div className="text-center py-12 flex flex-col items-center gap-2 opacity-20">
+                  <Info className="h-10 w-10" />
+                  <p className="text-sm italic font-medium tracking-tight">No data for this date.</p>
                 </div>
               )}
             </div>
+          </ScrollArea>
 
-            <DialogFooter className="mt-6 pt-4 border-t flex justify-end">
-              <Button
-                size="sm"
-                className="gap-2 rounded-full px-6"
-                onClick={() => {
-                  setIsDetailOpen(false);
-                  setIsAddOpen(true);
-                }}
-              >
-                <Plus className="h-4 w-4" /> Add Event
-              </Button>
-            </DialogFooter>
+          <div className="p-4 border-t bg-muted/20 flex justify-end">
+            <Button
+              size="sm"
+              className="gap-2 rounded-full px-6 shadow-lg shadow-blue-500/20"
+              onClick={() => {
+                setIsDetailOpen(false);
+                setIsAddOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4" /> Add Event
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* 2. New Event Dialog */}
+      {/* --- Add Dialog --- */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
-            <DialogTitle>New Team Event</DialogTitle>
+            <DialogTitle>Create New Event</DialogTitle>
           </DialogHeader>
-          <div className="py-4 space-y-4">
-            <div className="space-y-1">
-              <Label className="text-[10px] font-bold text-muted-foreground uppercase">Target Date</Label>
-              <Input value={selectedDate} disabled className="bg-muted font-mono" />
+          <div className="grid gap-5 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-black opacity-60">Start Time</Label>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 opacity-40" />
+                  <Input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="font-mono h-9"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] uppercase font-black opacity-60">End Time</Label>
+                <Input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="font-mono h-9"
+                />
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label className="text-[10px] font-bold text-muted-foreground uppercase">Title</Label>
-              <Input
-                autoFocus
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                placeholder="Ex: Team Lunch, Earnings Call..."
+            <div className="space-y-2">
+              <Label className="text-[10px] uppercase font-black opacity-60">Title</Label>
+              <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="What's happening?" />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] uppercase font-black opacity-60">Category</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full" style={{ backgroundColor: c.color }} />
+                        <span className="text-xs font-bold uppercase">{c.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[10px] uppercase font-black opacity-60">Description</Label>
+              <Textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="resize-none h-20 text-xs"
+                placeholder="Optional notes..."
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsAddOpen(false)}>
+            <Button variant="ghost" size="sm" onClick={() => setIsAddOpen(false)}>
               Cancel
             </Button>
             <Button
-              className="bg-blue-600 hover:bg-blue-700"
-              onClick={handleSave}
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 px-8 font-bold"
+              onClick={() =>
+                saveMutation.mutate({
+                  event_id: crypto.randomUUID(),
+                  title: newTitle,
+                  start: selectedDate,
+                  start_time: startTime,
+                  end: selectedDate,
+                  end_time: endTime,
+                  category: category,
+                  description: description,
+                  user: 'UserA',
+                })
+              }
               disabled={!newTitle.trim() || saveMutation.isPending}
             >
-              {saveMutation.isPending ? 'Saving...' : 'Confirm'}
+              {saveMutation.isPending ? 'Syncing...' : 'Save Event'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -278,16 +354,11 @@ export function CalendarWidget({ targetId }: WidgetProps) {
 
       <style jsx global>{`
         .sx-react-calendar-wrapper,
-        .sx-react-calendar-wrapper > div {
-          height: 100% !important;
-          width: 100% !important;
-        }
         .sx__calendar {
           height: 100% !important;
           border: none !important;
-          background-color: transparent !important;
+          background: transparent !important;
         }
-        /* ダークモード時のカレンダー境界線と文字色の微調整 */
         .dark .sx__calendar {
           --sx-color-background: transparent;
           --sx-color-on-background: #f8fafc;
@@ -297,14 +368,16 @@ export function CalendarWidget({ targetId }: WidgetProps) {
           --sx-color-border: #1e293b;
           --sx-color-neutral-variant: #1e293b;
         }
-        .sx__month-grid-day.sx__today {
-          background-color: rgba(59, 130, 246, 0.1) !important;
-        }
         .sx__event {
           border-radius: 4px !important;
           font-size: 0.7rem !important;
-          padding: 2px 4px !important;
-          font-weight: 600 !important;
+          font-weight: 800 !important;
+        }
+        .sx__event-modal {
+          background-color: var(--sx-color-surface) !important;
+          border-radius: 12px !important;
+          border: 1px solid var(--sx-color-border) !important;
+          color: var(--sx-color-on-surface) !important;
         }
       `}</style>
     </div>
