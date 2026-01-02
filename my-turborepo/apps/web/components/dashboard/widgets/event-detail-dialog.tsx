@@ -35,7 +35,7 @@ export function EventDetailDialog({
             <CalendarIcon className="h-5 w-5 opacity-80" />
             <DialogTitle className="text-xl font-bold tracking-tight">{selectedDate}</DialogTitle>
           </div>
-          <div className="flex items-center gap-4 mr-8">
+          <div className="flex items-center gap-4 mr-6">
             <Badge
               variant="outline"
               className="px-2 py-0.5 text-[10px] font-bold border-foreground/20 text-secondary-foreground"
@@ -125,7 +125,7 @@ export function EventDetailDialog({
         </ScrollArea>
 
         <div className="p-4 border-t bg-muted/20 flex justify-end">
-          <Button size="sm" className="gap-2 rounded-full px-6 shadow-lg shadow-blue-500/20" onClick={onAdd}>
+          <Button size="sm" className="gap-2 rounded-full pl-3! pr-4! shadow-lg shadow-blue-500/20" onClick={onAdd}>
             <Plus className="h-4 w-4" /> Add Event
           </Button>
         </div>

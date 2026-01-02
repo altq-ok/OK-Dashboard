@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useNextCalendarApp, ScheduleXCalendar } from '@schedule-x/react';
-import { createViewMonthGrid } from '@schedule-x/calendar';
+import { createViewMonthGrid, createViewDay, createViewWeek, createViewList } from '@schedule-x/calendar';
 import { createEventModalPlugin } from '@schedule-x/event-modal';
 import { createEventsServicePlugin } from '@schedule-x/events-service';
 import { WidgetProps } from '@/lib/widget-registry';
@@ -21,7 +21,7 @@ export function CalendarWidget({ targetId }: WidgetProps) {
   const [eventsService] = useState(() => createEventsServicePlugin());
 
   const calendar = useNextCalendarApp({
-    views: [createViewMonthGrid()],
+    views: [createViewMonthGrid(), createViewWeek(), createViewDay(), createViewList()],
     events: combinedEvents,
     plugins: [eventsService, createEventModalPlugin()],
     isDark: resolvedTheme === 'dark',
@@ -43,18 +43,36 @@ export function CalendarWidget({ targetId }: WidgetProps) {
     },
   });
 
+  // Data sync
   useEffect(() => {
     if (calendar && eventsService) {
       eventsService.set(combinedEvents);
     }
   }, [combinedEvents, calendar, eventsService]);
 
+  // Toggle theme
+  useEffect(() => {
+    if (calendar && calendar.setTheme) {
+      calendar.setTheme(resolvedTheme === 'dark' ? 'dark' : 'light');
+    }
+  }, [resolvedTheme, calendar]);
+
   if (isLoading) {
     return <div className="h-full w-full flex items-center justify-center animate-pulse text-xs">Loading...</div>;
   }
-
   return (
     <div className="h-full w-full p-1 bg-background relative flex flex-col overflow-hidden">
+      <style jsx global>
+        {`
+          .sx-react-calendar-wrapper,
+          .sx__calendar {
+            height: 100%;
+            width: 100%;
+            border: none;
+            background-color: transparent !important;
+          }
+        `}
+      </style>
       <div
         key={resolvedTheme}
         className="flex-1 rounded-xl border overflow-hidden relative shadow-inner sx-react-calendar-wrapper"

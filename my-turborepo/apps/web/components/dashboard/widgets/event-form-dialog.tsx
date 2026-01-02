@@ -43,11 +43,11 @@ export function EventFormDialog({
           <DialogTitle className="flex items-center gap-2">
             {editingId ? (
               <>
-                <Edit2 className="h-4 w-4 text-blue-500" /> Edit Event
+                <Edit2 className="h-4 w-4 text-purple-500" /> Edit Event
               </>
             ) : (
               <>
-                <Plus className="h-4 w-4 text-blue-500" /> New Event
+                <Plus className="h-4 w-4 text-purple-500" /> New Event
               </>
             )}
           </DialogTitle>
@@ -135,7 +135,7 @@ export function EventFormDialog({
           </Button>
           <Button
             size="sm"
-            className="bg-primary text-primary-foreground hover:opacity-90 px-8 font-bold"
+            className="bg-primary text-primary-foreground hover:opacity-90 px-4 font-bold"
             onClick={onSave}
             disabled={!values.title.trim() || isPending}
           >
