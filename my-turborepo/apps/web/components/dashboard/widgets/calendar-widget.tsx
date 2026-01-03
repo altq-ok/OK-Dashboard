@@ -49,6 +49,11 @@ export function CalendarWidget({ targetId }: WidgetProps) {
         ui.setIsDetailOpen(true);
       },
     },
+    // view options
+    weekOptions: {
+      // nDays: 5, - uncomment if you want to show Mon-Fri only
+    },
+    isResponsive: false, // true will dynamically switch view with window size
   });
 
   // Data sync
