@@ -95,12 +95,6 @@ export function useCalendarLogic() {
     ];
   }, [rawSystemEvents, rawUserEvents]);
 
-  // TODO: DELETE LATER
-  for (let e of combinedEvents) {
-    console.log(e.start.toString());
-    console.log(e.end.toString());
-  }
-
   // Mutation functions
   const saveMutation = useMutation({
     mutationFn: async (newEvent: UserEvent) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNextCalendarApp, ScheduleXCalendar } from '@schedule-x/react';
 import { createViewMonthGrid, createViewDay, createViewWeek, createViewList } from '@schedule-x/calendar';
 import { createEventModalPlugin } from '@schedule-x/event-modal';
@@ -17,6 +17,7 @@ import '@schedule-x/theme-shadcn/dist/index.css';
 export function CalendarWidget({ targetId }: WidgetProps) {
   const { resolvedTheme } = useTheme();
   const { combinedEvents, selectedDayEvents, isLoading, ui, form, deleteEvent, isSaving } = useCalendarLogic();
+  const userTimezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
 
   const [eventsService] = useState(() => createEventsServicePlugin());
 
@@ -25,7 +26,8 @@ export function CalendarWidget({ targetId }: WidgetProps) {
     events: combinedEvents,
     plugins: [eventsService, createEventModalPlugin()],
     isDark: resolvedTheme === 'dark',
-    locale: 'en-US',
+    locale: 'en-UK', // 'ja-JP'
+    timezone: userTimezone as any, // 'Asia/Tokyo'
     defaultView: 'month-grid',
     theme: 'shadcn',
     calendars: CATEGORIES.reduce(
