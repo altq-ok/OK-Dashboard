@@ -36,3 +36,12 @@ export const CATEGORIES = [
     darkColors: { main: '#94a3b8', container: '#1e293b', onContainer: '#f1f5f9' },
   },
 ] as const;
+
+export const TIMEZONES = [
+  { value: 'Asia/Tokyo', label: 'Asia/Tokyo (JST, UTC+9)' },
+  { value: 'America/New_York', label: 'America/New_York (EST/EDT, UTC-5/-4)' },
+  { value: 'Europe/London', label: 'Europe/London (GMT/BST, UTC+0/+1)' },
+  { value: 'Europe/Paris', label: 'Europe/Paris (CET/CEST, UTC+1/+2)' },
+  { value: 'Australia/Sydney', label: 'Australia/Sydney (AEDT/AEST, UTC+11/+10)' },
+  { value: 'UTC', label: 'UTC (UTC+0)' },
+] as const;

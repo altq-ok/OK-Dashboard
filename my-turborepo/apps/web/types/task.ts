@@ -24,6 +24,7 @@ export interface UserEvent {
   start_time?: string; // HH:mm
   end?: string; // YYYY-MM-DD
   end_time?: string; // HH:mm
+  timezone?: string;
   description?: string;
   category?: string;
   user: string;

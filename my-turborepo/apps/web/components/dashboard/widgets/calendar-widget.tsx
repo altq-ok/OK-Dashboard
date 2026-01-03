@@ -104,6 +104,7 @@ export function CalendarWidget({ targetId }: WidgetProps) {
           if (field === 'end') form.setters.setEnd(val);
           if (field === 'startTime') form.setters.setStartTime(val);
           if (field === 'endTime') form.setters.setEndTime(val);
+          if (field === 'timezone') form.setters.setTimezone(val);
           if (field === 'description') form.setters.setDescription(val);
           if (field === 'category') form.setters.setCategory(val);
         }}

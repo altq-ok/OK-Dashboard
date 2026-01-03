@@ -31,6 +31,7 @@ class UserEvent(BaseModel):
     start_time: Optional[str] = Field(None, description="Start time (HH:mm)")
     end: Optional[str] = Field(None, description="End date (YYYY-MM-DD)")
     end_time: Optional[str] = Field(None, description="End time (HH:mm)")
+    timezone: Optional[str] = Field(None, description="Timezone")
     description: Optional[str] = ""
     category: Optional[str] = ""
     user: str = Field(..., description="User who created this")

@@ -9,9 +9,13 @@ import { useSnapshot } from '@/hooks/use-snapshot';
 import { useDashboardParams } from '@/hooks/use-dashboard-params';
 import { CATEGORIES } from '@/components/dashboard/widgets/calendar-constants';
 
-function parseToTemporalWithValidation(dateStr: string | undefined | null, timeStr?: string | null) {
+function parseToTemporalWithValidation(
+  dateStr: string | undefined | null,
+  timeStr?: string | null,
+  timezone?: string | null,
+) {
   const today = new Date().toISOString().split('T')[0];
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
   const d = (dateStr || '').substring(0, 10);
   const isValidDate = /^\d{4}-\d{2}-\d{2}$/.test(d);
   try {
@@ -20,7 +24,8 @@ function parseToTemporalWithValidation(dateStr: string | undefined | null, timeS
     const hasTime = /^([01]\d|2[0-3]):[0-5]\d/.test(t);
     if (hasTime) {
       const cleanTime = t.substring(0, 5);
-      return { value: Temporal.ZonedDateTime.from(`${d}T${cleanTime}:00[${tz}]`), isError: false };
+      const dateTimeString = `${d}T${cleanTime}:00[${tz}]`;
+      return { value: Temporal.ZonedDateTime.from(dateTimeString), isError: false };
     } else {
       return { value: Temporal.PlainDate.from(d), isError: false };
     }
@@ -33,6 +38,7 @@ export function useCalendarLogic() {
   const queryClient = useQueryClient();
   const { versions } = useDashboardParams();
   const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const userTimezone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone, []);
 
   // UI States
   const [selectedDate, setSelectedDate] = useState(today);
@@ -46,6 +52,7 @@ export function useCalendarLogic() {
   const [end, setEnd] = useState(selectedDate);
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
+  const [timezone, setTimezone] = useState(userTimezone);
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('other');
 
@@ -66,8 +73,8 @@ export function useCalendarLogic() {
   // Combine system and user events
   const combinedEvents = useMemo(() => {
     const mapEvent = (e: any, isSystem: boolean, index: number) => {
-      const startRes = parseToTemporalWithValidation(e.start, e.start_time);
-      const endRes = parseToTemporalWithValidation(e.end || e.start, e.end_time || e.start_time);
+      const startRes = parseToTemporalWithValidation(e.start, e.start_time, e.timezone);
+      const endRes = parseToTemporalWithValidation(e.end || e.start, e.end_time || e.start_time, e.timezone);
       const isError = startRes.isError || endRes.isError;
       const isValidCategory = CATEGORIES.some((c) => c.id === e.category);
       const catId = isError ? 'error' : isValidCategory ? e.category : 'other';
@@ -87,6 +94,12 @@ export function useCalendarLogic() {
       ...(rawUserEvents || []).map((e: any, i: number) => mapEvent(e, false, i)),
     ];
   }, [rawSystemEvents, rawUserEvents]);
+
+  // TODO: DELETE LATER
+  for (let e of combinedEvents) {
+    console.log(e.start.toString());
+    console.log(e.end.toString());
+  }
 
   // Mutation functions
   const saveMutation = useMutation({
@@ -124,6 +137,7 @@ export function useCalendarLogic() {
     setEnd(e.end.toPlainDate().toString() || '');
     setStartTime(e.start_time || '09:00');
     setEndTime(e.end_time || '10:00');
+    setTimezone(e.timezone || userTimezone);
     setDescription(e.description || '');
     setCategory(e.category || 'other');
     setIsDetailOpen(false);
@@ -137,6 +151,7 @@ export function useCalendarLogic() {
     setEnd(selectedDate);
     setStartTime('09:00');
     setEndTime('10:00');
+    setTimezone(userTimezone);
     setDescription('');
     setCategory('other');
     setIsDetailOpen(false);
@@ -151,6 +166,7 @@ export function useCalendarLogic() {
       start_time: startTime,
       end: end,
       end_time: endTime,
+      timezone: timezone,
       category,
       description,
       user: 'UserA', // TODO
@@ -184,8 +200,8 @@ export function useCalendarLogic() {
     },
     // Form State & Actions
     form: {
-      values: { title: newTitle, start, end, startTime, endTime, description, category },
-      setters: { setNewTitle, setStart, setEnd, setStartTime, setEndTime, setDescription, setCategory },
+      values: { title: newTitle, start, end, startTime, endTime, timezone, description, category },
+      setters: { setNewTitle, setStart, setEnd, setStartTime, setEndTime, setTimezone, setDescription, setCategory },
       handleEditInit,
       handleAddNewInit,
       handleSave,

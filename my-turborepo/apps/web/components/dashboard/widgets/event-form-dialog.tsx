@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit2 } from 'lucide-react';
-import { CATEGORIES } from './calendar-constants';
+import { CATEGORIES, TIMEZONES } from './calendar-constants';
 
 interface EventFormDialogProps {
   isOpen: boolean;
@@ -20,6 +20,7 @@ interface EventFormDialogProps {
     end: string;
     startTime: string;
     endTime: string;
+    timezone: string;
     description: string;
     category: string;
   };
@@ -32,7 +33,6 @@ export function EventFormDialog({
   isOpen,
   onOpenChange,
   editingId,
-  selectedDate,
   values,
   onChange,
   onSave,
@@ -98,6 +98,26 @@ export function EventFormDialog({
                 className="h-9 font-mono"
               />
             </div>
+          </div>
+
+          {/* Timezone */}
+          <div className="space-y-1">
+            <Label className="text-[10px] uppercase font-bold opacity-60">Timezone</Label>
+            <Select
+              value={values.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone}
+              onValueChange={(v) => onChange('timezone', v)}
+            >
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TIMEZONES.map((tz) => (
+                  <SelectItem key={tz.value} value={tz.value} className="text-xs">
+                    {tz.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Title */}
