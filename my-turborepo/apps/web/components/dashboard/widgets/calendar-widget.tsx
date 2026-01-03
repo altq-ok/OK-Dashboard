@@ -2,7 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useNextCalendarApp, ScheduleXCalendar } from '@schedule-x/react';
-import { createViewMonthGrid, createViewDay, createViewWeek, createViewList } from '@schedule-x/calendar';
+import {
+  createViewMonthGrid,
+  createViewDay,
+  createViewWeek,
+  createViewList,
+  viewMonthGrid,
+} from '@schedule-x/calendar';
 import { createEventModalPlugin } from '@schedule-x/event-modal';
 import { createEventsServicePlugin } from '@schedule-x/events-service';
 import { WidgetProps } from '@/lib/widget-registry';
@@ -28,7 +34,7 @@ export function CalendarWidget({ targetId }: WidgetProps) {
     isDark: resolvedTheme === 'dark',
     locale: 'en-UK', // 'ja-JP'
     timezone: userTimezone as any, // 'Asia/Tokyo'
-    defaultView: 'month-grid',
+    defaultView: viewMonthGrid.name,
     theme: 'shadcn',
     calendars: CATEGORIES.reduce(
       (acc, cat) => ({
