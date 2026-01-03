@@ -16,6 +16,8 @@ interface EventFormDialogProps {
   selectedDate: string;
   values: {
     title: string;
+    start: string;
+    end: string;
     startTime: string;
     endTime: string;
     description: string;
@@ -53,11 +55,27 @@ export function EventFormDialog({
           </DialogTitle>
         </DialogHeader>
 
+        {/* Start and end date */}
         <div className="grid gap-5 py-4">
-          {/* Display date (read only) */}
-          <div className="space-y-1">
-            <Label className="text-[10px] uppercase font-bold opacity-60">Target Date</Label>
-            <Input value={selectedDate} disabled className="bg-muted font-mono h-9" />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <Label className="text-[10px] uppercase font-bold opacity-60">Start Date</Label>
+              <Input
+                type="date"
+                value={values.start}
+                onChange={(e) => onChange('start', e.target.value)}
+                className="h-9 font-mono"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-[10px] uppercase font-bold opacity-60">End Date</Label>
+              <Input
+                type="date"
+                value={values.end}
+                onChange={(e) => onChange('end', e.target.value)}
+                className="h-9 font-mono"
+              />
+            </div>
           </div>
 
           {/* Start and end time */}

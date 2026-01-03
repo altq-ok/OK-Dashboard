@@ -1,5 +1,6 @@
 'use client';
 
+import 'temporal-polyfill/global';
 import { useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -41,6 +42,8 @@ export function useCalendarLogic() {
 
   // Form States
   const [newTitle, setNewTitle] = useState('');
+  const [start, setStart] = useState(selectedDate);
+  const [end, setEnd] = useState(selectedDate);
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('10:00');
   const [description, setDescription] = useState('');
@@ -117,6 +120,8 @@ export function useCalendarLogic() {
   const handleEditInit = (e: any) => {
     setEditingId(e.event_id);
     setNewTitle(e.title);
+    setStart(e.start.toPlainDate().toString() || '');
+    setEnd(e.end.toPlainDate().toString() || '');
     setStartTime(e.start_time || '09:00');
     setEndTime(e.end_time || '10:00');
     setDescription(e.description || '');
@@ -128,6 +133,8 @@ export function useCalendarLogic() {
   const handleAddNewInit = () => {
     setEditingId(null);
     setNewTitle('');
+    setStart(selectedDate);
+    setEnd(selectedDate);
     setStartTime('09:00');
     setEndTime('10:00');
     setDescription('');
@@ -140,9 +147,9 @@ export function useCalendarLogic() {
     saveMutation.mutate({
       event_id: editingId || crypto.randomUUID(),
       title: newTitle,
-      start: selectedDate,
+      start: start,
       start_time: startTime,
-      end: selectedDate,
+      end: end,
       end_time: endTime,
       category,
       description,
@@ -171,8 +178,8 @@ export function useCalendarLogic() {
     },
     // Form State & Actions
     form: {
-      values: { title: newTitle, startTime, endTime, description, category },
-      setters: { setNewTitle, setStartTime, setEndTime, setDescription, setCategory },
+      values: { title: newTitle, start, end, startTime, endTime, description, category },
+      setters: { setNewTitle, setStart, setEnd, setStartTime, setEndTime, setDescription, setCategory },
       handleEditInit,
       handleAddNewInit,
       handleSave,

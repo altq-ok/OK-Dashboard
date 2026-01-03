@@ -100,6 +100,8 @@ export function CalendarWidget({ targetId }: WidgetProps) {
         values={form.values}
         onChange={(field, val) => {
           if (field === 'title') form.setters.setNewTitle(val);
+          if (field === 'start') form.setters.setStart(val);
+          if (field === 'end') form.setters.setEnd(val);
           if (field === 'startTime') form.setters.setStartTime(val);
           if (field === 'endTime') form.setters.setEndTime(val);
           if (field === 'description') form.setters.setDescription(val);
