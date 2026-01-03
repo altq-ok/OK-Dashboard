@@ -153,12 +153,18 @@ export function useCalendarLogic() {
       end_time: endTime,
       category,
       description,
-      user: 'UserA',
+      user: 'UserA', // TODO
     });
   };
 
+  // Check if selected date is within the event date range (start <= date <= end)
   const selectedDayEvents = useMemo(() => {
-    return combinedEvents.filter((e) => e.start.toString().startsWith(selectedDate));
+    return combinedEvents.filter((e) => {
+      const selectedDay = selectedDate.split('T')[0];
+      const eventStartDay = String(e.start).split('T')[0];
+      const eventEndDay = String(e.end).split('T')[0];
+      return selectedDay >= eventStartDay && selectedDay <= eventEndDay;
+    });
   }, [combinedEvents, selectedDate]);
 
   return {
