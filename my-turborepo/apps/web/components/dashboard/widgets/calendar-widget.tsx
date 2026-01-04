@@ -17,6 +17,7 @@ import { useCalendarLogic } from '@/hooks/use-calendar-logic';
 import { CATEGORIES } from './calendar-constants';
 import { EventDetailDialog } from './event-detail-dialog';
 import { EventFormDialog } from './event-form-dialog';
+import { LoadingWidget } from './loading-widget';
 
 import '@schedule-x/theme-shadcn/dist/index.css';
 
@@ -71,7 +72,7 @@ export function CalendarWidget({ targetId }: WidgetProps) {
   }, [resolvedTheme, calendar]);
 
   if (isLoading) {
-    return <div className="h-full w-full flex items-center justify-center animate-pulse text-xs">Loading...</div>;
+    return <LoadingWidget message="LOADING..." />;
   }
   return (
     <div className="h-full w-full p-1 relative flex flex-col overflow-hidden bg-transparent">

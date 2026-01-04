@@ -3,16 +3,11 @@
 import { useSnapshot } from '@/hooks/use-snapshot';
 import { useDashboardParams } from '@/hooks/use-dashboard-params';
 import { WidgetProps } from '@/lib/widget-registry';
+import { LoadingWidget } from './loading-widget';
 
 export function AnalyticsWidget({ targetId }: WidgetProps) {
   const { versions } = useDashboardParams();
   const { result: prices, isDataLoading } = useSnapshot(targetId, 'prices', versions.prices);
 
-  if (isDataLoading) return <div>Loading data...</div>;
-
-  return (
-    <div className="animate-in fade-in duration-500">
-      <pre className="text-[10px] font-mono">{JSON.stringify(prices, null, 2)}</pre>
-    </div>
-  );
+  return <LoadingWidget message="TO BE IMPLEMENTED..." />;
 }
