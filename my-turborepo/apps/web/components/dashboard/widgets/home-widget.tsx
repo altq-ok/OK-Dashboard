@@ -18,7 +18,6 @@ const LOCATIONS = [
 
 export function HomeWidget({ targetId }: WidgetProps) {
   const { data: allStatuses } = useAllStatuses();
-  const [times, setTimes] = useState<Record<string, string>>({});
 
   // Fetch snapshots to check statuses
   const { snapshots: pricingSnaps } = useSnapshot('ALL', 'prices');
@@ -30,24 +29,6 @@ export function HomeWidget({ targetId }: WidgetProps) {
     queryKey: ['user-events'],
     queryFn: async () => (await fetch('http://localhost:8000/data/user-events')).json(),
   });
-
-  // Update world clocks every second
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const newTimes: Record<string, string> = {};
-      LOCATIONS.forEach((loc) => {
-        newTimes[loc.city] = new Intl.DateTimeFormat('en-US', {
-          timeZone: loc.zone,
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false,
-        }).format(new Date());
-      });
-      setTimes(newTimes);
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   // Check status of each data type
   const stats = useMemo(() => {
@@ -69,39 +50,16 @@ export function HomeWidget({ targetId }: WidgetProps) {
     <div className="p-4 space-y-4 animate-in fade-in duration-1000 max-w-7xl mx-auto pb-10">
       {/* Top Row: World Clocks & Market Ticker */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="md:col-span-3 shadow-sm border-muted-foreground/10 bg-linear-to-br from-background to-muted/30 overflow-hidden relative">
+        <Card className="md:col-span-3 shadow-sm border-muted-foreground/10 from-background to-muted/30 overflow-hidden relative">
           <CardHeader className="pb-2">
             <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
               <Globe className="h-3 w-3 text-blue-500" /> Global Exchange Monitor
             </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-3 gap-2">
-            {LOCATIONS.map((loc) => {
-              const timeStr = times[loc.city] || '00:00:00';
-              const hour = parseInt(timeStr.split(':')[0]);
-              const isOpen = hour >= loc.open && hour < loc.close;
-              return (
-                <div
-                  key={loc.city}
-                  className="flex flex-col items-center p-4 rounded-2xl bg-background/40 border shadow-xs backdrop-blur-sm group hover:bg-background/60 transition-colors"
-                >
-                  <span className="text-3xl mb-1 transition-transform group-hover:scale-110 duration-500">
-                    {loc.flag}
-                  </span>
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase">{loc.city}</span>
-                  <span className="text-2xl font-mono font-bold tracking-tighter tabular-nums">{timeStr}</span>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      'mt-2 text-[9px] h-4 border-none font-bold',
-                      isOpen ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground',
-                    )}
-                  >
-                    {loc.market} • {isOpen ? 'OPEN' : 'CLOSED'}
-                  </Badge>
-                </div>
-              );
-            })}
+            {LOCATIONS.map((loc) => (
+              <WorldClockCard key={loc.city} location={loc} />
+            ))}
           </CardContent>
         </Card>
 
@@ -196,7 +154,7 @@ export function HomeWidget({ targetId }: WidgetProps) {
       </div>
 
       {/* Bottom Row: System Status Console */}
-      <Card className="bg-muted/40 dark:bg-slate-950 text-foreground overflow-hidden relative border shadow-sm rounded-3xl transition-colors duration-500">
+      <Card className="bg-muted/40 text-foreground overflow-hidden relative border shadow-sm rounded-3xl transition-colors duration-500">
         <div className="absolute top-0 right-0 p-4 opacity-[0.03] dark:opacity-10 rotate-12">
           <Cpu className="h-40 w-40" />
         </div>
@@ -249,6 +207,47 @@ export function HomeWidget({ targetId }: WidgetProps) {
           OK-Dashboard v0.1.0 • Secure Local Instance
         </Badge>
       </div>
+    </div>
+  );
+}
+
+function WorldClockCard({ location }: { location: (typeof LOCATIONS)[0] }) {
+  const [time, setTime] = useState('--:--:--');
+
+  useEffect(() => {
+    const update = () => {
+      setTime(
+        new Intl.DateTimeFormat('en-US', {
+          timeZone: location.zone,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        }).format(new Date()),
+      );
+    };
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [location.zone]);
+
+  const hour = parseInt(time.split(':')[0]);
+  const isOpen = hour >= location.open && hour < location.close;
+
+  return (
+    <div className="flex flex-col items-center p-4 rounded-2xl bg-background/40 border shadow-xs backdrop-blur-sm group hover:bg-background/60 transition-colors">
+      <span className="text-3xl mb-1 transition-transform group-hover:scale-110 duration-500">{location.flag}</span>
+      <span className="text-[10px] font-bold text-muted-foreground uppercase">{location.city}</span>
+      <span className="text-2xl font-mono font-bold tracking-tighter tabular-nums">{time}</span>
+      <Badge
+        variant="outline"
+        className={cn(
+          'mt-2 text-[9px] h-4 border-none font-bold',
+          isOpen ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground',
+        )}
+      >
+        {location.market} • {isOpen ? 'OPEN' : 'CLOSED'}
+      </Badge>
     </div>
   );
 }
