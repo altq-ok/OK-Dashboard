@@ -4,11 +4,12 @@ import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAllStatuses } from '@/hooks/use-all-statuses';
-import { Globe, AlertTriangle, Calendar, Cpu, Activity, CheckCircle2, TrendingUp } from 'lucide-react';
+import { useSnapshot } from '@/hooks/use-snapshot';
+import { useQuery } from '@tanstack/react-query';
+import { Globe, AlertTriangle, Calendar, Cpu, TrendingUp, Zap } from 'lucide-react';
 import { WidgetProps } from '@/lib/widget-registry';
-import { cn } from '@/lib/utils';
+import { cn, isSnapshotToday } from '@/lib/utils';
 
-// World clock settings
 const LOCATIONS = [
   { city: 'Tokyo', zone: 'Asia/Tokyo', flag: '🇯🇵', market: 'TSE', open: 9, close: 15 },
   { city: 'London', zone: 'Europe/London', flag: '🇬🇧', market: 'LSE', open: 8, close: 16 },
@@ -19,7 +20,18 @@ export function HomeWidget({ targetId }: WidgetProps) {
   const { data: allStatuses } = useAllStatuses();
   const [times, setTimes] = useState<Record<string, string>>({});
 
-  // Update clock every second
+  // Fetch snapshots to check statuses
+  const { snapshots: pricingSnaps } = useSnapshot('ALL', 'prices');
+  const { snapshots: eventSnaps } = useSnapshot('ALL', 'calendar_events');
+  const { snapshots: guideSnaps } = useSnapshot('ALL', 'guideline_results');
+
+  // Fetch user events
+  const { data: userEvents = [] } = useQuery({
+    queryKey: ['user-events'],
+    queryFn: async () => (await fetch('http://localhost:8000/data/user-events')).json(),
+  });
+
+  // Update world clocks every second
   useEffect(() => {
     const timer = setInterval(() => {
       const newTimes: Record<string, string> = {};
@@ -37,28 +49,30 @@ export function HomeWidget({ targetId }: WidgetProps) {
     return () => clearInterval(timer);
   }, []);
 
-  // Calculate summary from all statuses
+  // Check status of each data type
   const stats = useMemo(() => {
-    if (!allStatuses) return { running: 0, failed: 0, done: 0 };
+    if (!allStatuses) return { running: 0, failed: 0, done: 0, total: 0 };
     return {
       running: allStatuses.filter((s) => s.status === 'running').length,
       failed: allStatuses.filter((s) => s.status === 'failed').length,
       done: allStatuses.filter((s) => s.status === 'done').length,
+      total: allStatuses.length,
     };
   }, [allStatuses]);
 
+  // Extract upcoming events from user events
+  const upcomingEvents = useMemo(() => {
+    return [...userEvents].sort((a, b) => a.start.localeCompare(b.start)).slice(0, 2);
+  }, [userEvents]);
+
   return (
-    <div className="p-4 space-y-4 animate-in fade-in duration-700 max-w-7xl mx-auto">
-      {/* --- Bento Grid Top Row --- */}
+    <div className="p-4 space-y-4 animate-in fade-in duration-1000 max-w-7xl mx-auto pb-10">
+      {/* Top Row: World Clocks & Market Ticker */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* World Clocks (Spans 3 columns) */}
         <Card className="md:col-span-3 shadow-sm border-muted-foreground/10 bg-linear-to-br from-background to-muted/30 overflow-hidden relative">
-          <div className="absolute top-0 right-0 p-4 opacity-5">
-            <Globe className="h-24 w-24" />
-          </div>
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-              <Globe className="h-3 w-3" /> Global Market Hours
+            <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+              <Globe className="h-3 w-3 text-blue-500" /> Global Exchange Monitor
             </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-3 gap-2">
@@ -66,23 +80,20 @@ export function HomeWidget({ targetId }: WidgetProps) {
               const timeStr = times[loc.city] || '00:00:00';
               const hour = parseInt(timeStr.split(':')[0]);
               const isOpen = hour >= loc.open && hour < loc.close;
-
               return (
                 <div
                   key={loc.city}
-                  className="flex flex-col items-center p-4 rounded-2xl bg-background/40 border shadow-sm backdrop-blur-sm"
+                  className="flex flex-col items-center p-4 rounded-2xl bg-background/40 border shadow-xs backdrop-blur-sm group hover:bg-background/60 transition-colors"
                 >
-                  <span className="text-3xl mb-1 drop-shadow-sm">{loc.flag}</span>
-                  <span className="text-[10px] uppercase font-black text-muted-foreground tracking-tighter">
-                    {loc.city}
+                  <span className="text-3xl mb-1 transition-transform group-hover:scale-110 duration-500">
+                    {loc.flag}
                   </span>
-                  <span className="text-2xl font-mono font-bold tracking-tighter tabular-nums text-foreground">
-                    {timeStr}
-                  </span>
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase">{loc.city}</span>
+                  <span className="text-2xl font-mono font-bold tracking-tighter tabular-nums">{timeStr}</span>
                   <Badge
                     variant="outline"
                     className={cn(
-                      'mt-2 text-[9px] h-4 font-bold border-none',
+                      'mt-2 text-[9px] h-4 border-none font-bold',
                       isOpen ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted text-muted-foreground',
                     )}
                   >
@@ -94,109 +105,149 @@ export function HomeWidget({ targetId }: WidgetProps) {
           </CardContent>
         </Card>
 
-        {/* Success Rate / Stability (Spans 1 column) */}
-        <Card className="flex flex-col justify-between p-6 bg-card border shadow-sm">
-          <div className="space-y-1">
-            <TrendingUp className="h-5 w-5 text-emerald-500" />
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Stability</p>
+        {/* Stability Chart - dummy data */}
+        <Card className="flex flex-col justify-between p-6 bg-card border shadow-sm relative overflow-hidden">
+          <div className="space-y-1 z-10">
+            <TrendingUp className="h-5 w-5 text-blue-500" />
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Network Load</p>
           </div>
-          <div>
-            <h3 className="text-4xl font-bold tracking-tighter italic">98.2%</h3>
-            <p className="text-[9px] text-muted-foreground font-medium uppercase mt-1">Worker Success Rate</p>
-          </div>
-          <div className="flex gap-1">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className={cn('h-1 flex-1 rounded-full', i < 4 ? 'bg-emerald-500' : 'bg-muted')} />
+          <div className="flex items-end gap-1 h-12 z-10">
+            {[40, 70, 45, 90, 65, 80, 50, 60, 85, 30].map((v, i) => (
+              <div
+                key={i}
+                className="flex-1 bg-blue-500/20 rounded-t-sm transition-all duration-1000"
+                style={{ height: `${v}%` }}
+              >
+                <div className="w-full bg-blue-500 rounded-t-sm" style={{ height: i === 8 ? '100%' : '30%' }} />
+              </div>
             ))}
           </div>
+          <h3 className="text-2xl font-black tracking-tighter italic z-10">OPTIMAL</h3>
         </Card>
       </div>
 
-      {/* --- Bento Grid Middle Row --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Alerts Metrics */}
-        <Card className="border-l-4 border-l-red-500 shadow-sm group hover:bg-red-50/50 dark:hover:bg-red-950/10 transition-colors">
+      {/* Middle Row: Metrics & Data Freshness */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Alerts */}
+        <Card className="border-l-4 border-l-red-500 shadow-sm overflow-hidden">
           <CardContent className="p-6 flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Guideline Alerts</p>
-              <h3 className="text-4xl font-bold text-red-600 tracking-tighter">{stats.failed}</h3>
-              <p className="text-[10px] text-muted-foreground font-medium italic">Active compliance violations</p>
+              <h3 className="text-4xl font-black text-red-600 tracking-tighter">{stats.failed}</h3>
+              <Badge variant="destructive" className="text-[8px] h-4">
+                CRITICAL
+              </Badge>
             </div>
-            <div className="bg-red-100 dark:bg-red-900/30 p-4 rounded-3xl transition-transform group-hover:scale-110">
-              <AlertTriangle className="text-red-600 h-8 w-8" />
+            <AlertTriangle className="text-red-600 h-8 w-8" />
+          </CardContent>
+        </Card>
+
+        {/* Upcoming Events List */}
+        <Card className="border-l-4 border-l-blue-500 shadow-sm">
+          <CardContent className="p-5 space-y-4">
+            <div className="flex justify-between items-center">
+              <p className="text-xs font-bold uppercase tracking-widest text-blue-600">Upcoming</p>
+              <Calendar className="h-4 w-4 text-blue-500" />
+            </div>
+            <div className="space-y-2">
+              {upcomingEvents.length > 0 ? (
+                upcomingEvents.map((e) => (
+                  <div
+                    key={e.event_id}
+                    className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 border border-border/50"
+                  >
+                    <div className="text-[10px] font-mono font-bold bg-blue-500 text-white px-1.5 rounded">
+                      {e.start.substring(8, 10)}
+                    </div>
+                    <div className="text-[11px] font-bold truncate flex-1">{e.title}</div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-[10px] italic text-muted-foreground text-center py-2">No upcoming events</p>
+              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Events Metrics */}
-        <Card className="border-l-4 border-l-blue-500 shadow-sm group hover:bg-blue-50/50 dark:hover:bg-blue-950/10 transition-colors">
-          <CardContent className="p-6 flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Today&apos;s Events</p>
-              <h3 className="text-4xl font-bold text-blue-600 tracking-tighter">12</h3>
-              <p className="text-[10px] text-muted-foreground font-medium italic">Earnings & Corporate Actions</p>
-            </div>
-            <div className="bg-blue-100 dark:bg-blue-900/30 p-4 rounded-3xl transition-transform group-hover:scale-110">
-              <Calendar className="text-blue-600 h-8 w-8" />
+        {/* Data Freshness (The "Traffic Light" Grid) */}
+        <Card className="shadow-sm border-dashed">
+          <CardContent className="p-5 space-y-3">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Data Integrity</p>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: 'Pricing', ok: isSnapshotToday(pricingSnaps?.[0]) },
+                { label: 'Events', ok: isSnapshotToday(eventSnaps?.[0]) },
+                { label: 'Compliance', ok: isSnapshotToday(guideSnaps?.[0]) },
+                { label: 'Dummy', ok: true },
+              ].map((d) => (
+                <div key={d.label} className="flex items-center justify-between p-2 rounded-md bg-muted/30 border">
+                  <span className="text-[10px] font-medium">{d.label}</span>
+                  <div
+                    className={cn(
+                      'h-2 w-2 rounded-full shadow-[0_0_8px]',
+                      d.ok ? 'bg-emerald-500 shadow-emerald-500/50' : 'bg-amber-500 shadow-amber-500/50 animate-pulse',
+                    )}
+                  />
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* --- Section 3: System Status --- */}
-      <Card className="bg-muted/40 dark:bg-slate-950 text-foreground overflow-hidden relative border shadow-sm rounded-2xl transition-colors duration-500">
+      {/* Bottom Row: System Status Console */}
+      <Card className="bg-muted/40 dark:bg-slate-950 text-foreground overflow-hidden relative border shadow-sm rounded-3xl transition-colors duration-500">
         <div className="absolute top-0 right-0 p-4 opacity-[0.03] dark:opacity-10 rotate-12">
-          <Cpu className="h-32 w-32" />
+          <Cpu className="h-40 w-40" />
         </div>
-
         <CardContent className="p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-background border shadow-inner">
-              <Activity className="h-5 w-5 text-emerald-500 animate-pulse" />
-            </div>
-            <div>
-              <h4 className="text-xs font-black tracking-[0.2em] uppercase">Local Node System Monitor</h4>
-              <p className="text-[10px] font-mono text-muted-foreground">Terminal ID: NODE-ALPHA-01</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 border-t border-border pt-6">
-            <div className="space-y-1.5">
-              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">Worker Engine</p>
-              <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" />
-                <p className="text-sm font-mono font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-tighter">
-                  Ready
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-background border shadow-inner">
+                <Zap className="h-6 w-6 text-emerald-500 fill-emerald-500/20" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black tracking-[0.3em] uppercase">Local Computing Node</h4>
+                <p className="text-[10px] font-mono text-muted-foreground flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  SYSTEM STATUS: NOMINAL // VER: 0.1.0
                 </p>
               </div>
             </div>
-
-            <div className="space-y-1.5">
-              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">Parallel Tasks</p>
-              <p className="text-lg font-mono font-bold tracking-tighter">{stats.running}</p>
+            <div className="hidden md:flex flex-col items-end">
+              <span className="text-[10px] font-black text-muted-foreground uppercase">Current Target</span>
+              <span className="text-xl font-black tracking-tighter text-blue-600">{targetId}</span>
             </div>
+          </div>
 
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 border-t border-border pt-8">
             <div className="space-y-1.5">
-              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">Link Status</p>
-              <p className="text-sm font-mono font-bold text-blue-600 dark:text-blue-400 uppercase tracking-tighter">
-                Y:/ Synchronized
-              </p>
+              <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest">Worker Cluster</p>
+              <p className="text-sm font-mono font-bold text-emerald-600 dark:text-emerald-400">● 01-ONLINE</p>
             </div>
-
             <div className="space-y-1.5">
-              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-wider">Version</p>
-              <p className="text-sm font-mono font-bold text-muted-foreground uppercase tracking-tighter">v1.2.0-STB</p>
+              <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest">Active Processes</p>
+              <p className="text-lg font-mono font-bold">{stats.running} ACTIVE</p>
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest">Storage Link</p>
+              <p className="text-sm font-mono font-bold text-blue-600 dark:text-blue-400">Y:/ MOUNTED</p>
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-[9px] text-muted-foreground font-black uppercase tracking-widest">Team Sync</p>
+              <p className="text-sm font-mono font-bold text-muted-foreground uppercase italic">Real-time</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Footer Info */}
-      <div className="flex justify-center items-center gap-6 py-2">
-        <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-tighter bg-muted/50 px-3 py-1 rounded-full border">
-          <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-          Everything is updated
-        </div>
+      <div className="flex justify-center pt-2">
+        <Badge
+          variant="secondary"
+          className="px-4 py-1 rounded-full text-[10px] font-bold tracking-widest opacity-50 uppercase"
+        >
+          OK-Dashboard v0.1.0 • Secure Local Instance
+        </Badge>
       </div>
     </div>
   );
