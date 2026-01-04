@@ -47,7 +47,7 @@ export function HomeWidget({ targetId }: WidgetProps) {
   }, [userEvents]);
 
   return (
-    <div className="p-4 space-y-4 animate-in fade-in duration-1000 max-w-7xl mx-auto pb-10">
+    <div className="p-4 space-y-4 animate-in slide-in-from-bottom-4 duration-1000 max-w-7xl mx-auto pb-10">
       {/* Top Row: World Clocks & Market Ticker */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="md:col-span-3 shadow-sm border-muted-foreground/10 from-background to-muted/30 overflow-hidden relative">
@@ -154,7 +154,7 @@ export function HomeWidget({ targetId }: WidgetProps) {
       </div>
 
       {/* Bottom Row: System Status Console */}
-      <Card className="bg-muted/40 text-foreground overflow-hidden relative border shadow-sm rounded-3xl transition-colors duration-500">
+      <Card className="bg-muted/40 backdrop-blur-sm text-foreground overflow-hidden relative border shadow-sm rounded-3xl transition-colors duration-500">
         <div className="absolute top-0 right-0 p-4 opacity-[0.03] dark:opacity-10 rotate-12">
           <Cpu className="h-40 w-40" />
         </div>
