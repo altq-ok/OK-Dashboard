@@ -82,11 +82,25 @@ If you don't have any preference, you can copy `.prettierrc` in `my-turborepo`.
 }
 ```
 
-### Run `pnpm dev`
+### Start development
 
 Enabling hot reload in both Next.js and FastAPI applications is a bit challenging. When `uvicorn --reload` is invoked via `turbo run dev`, the process exits on reload.
 
 While there might be various workarounds, one simple and robust approach is to laucnh the fronend and backend in separate terminals. Run `run-pnpm-dev.bat` which will clean up 3000 and 8000 ports and launch a terminal for each application.
+
+### Build and start
+
+Run `pnpm install` and `pnpm build` in `apps/web` to install dependencies and build the frontend. Then, you can run below commands to start frontend and backend servers.
+
+```bash
+# Start frontend
+echo "Starting frontend on http://localhost:3000"
+cd frontend && pnpm start
+
+# Start backend
+echo "Starting backend on http://localhost:8000"
+cd ../backend && uvicorn main:app --host 0.0.0.0 --port 8000
+```
 
 ## TL; DR
 
