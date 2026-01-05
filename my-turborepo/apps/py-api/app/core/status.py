@@ -101,5 +101,5 @@ class StatusManager:
                 if status:
                     statuses.append(status)
 
-        # Sort by last_heartbeat (decending, new => old)
+        # Sort by last_heartbeat (descending, new => old)
         return sorted(statuses, key=lambda x: x.get("last_heartbeat", ""), reverse=True)

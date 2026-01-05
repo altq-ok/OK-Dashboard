@@ -46,5 +46,5 @@ class DataManager:
         folder = os.path.join(self.local_root, "snapshots", data_type, target_id)
         if not os.path.exists(folder):
             return []
-        # Get a list in a decending order (new => old)
+        # Get a list in a descending order (new => old)
         return sorted([f for f in os.listdir(folder) if f.endswith(".parquet")], reverse=True)
