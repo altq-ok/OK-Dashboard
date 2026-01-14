@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Plus, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDashboardStore } from '@/store/useDashboardStore';
@@ -13,8 +14,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 
 export function WidgetSlot({ index }: { index: number }) {
+  const [isOver, setIsOver] = useState(false);
   const widgetType = useDashboardStore((state) => state.activeWidgets[index]);
   const setWidget = useDashboardStore((state) => state.setWidget);
   const widgetConfig = widgetType ? WIDGET_REGISTRY[widgetType] : null;
@@ -30,10 +33,35 @@ export function WidgetSlot({ index }: { index: number }) {
   // Monitor task status
   const { status, isUpdating } = useTask(effectiveTargetId, primaryTask);
 
+  // Define handlers for drag and drop
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsOver(true);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsOver(false);
+    const type = e.dataTransfer.getData('widgetType') as WidgetType;
+    if (type) {
+      setWidget(index, type);
+    }
+  };
+
   if (!widgetType) {
     return (
-      <div className="h-full w-full p-2">
-        <div className="flex h-full w-full items-center justify-center border-2 border-dashed rounded-xl bg-muted/30">
+      <div
+        className="h-full w-full p-2"
+        onDragOver={handleDragOver}
+        onDragLeave={() => setIsOver(false)}
+        onDrop={handleDrop}
+      >
+        <div
+          className={cn(
+            'flex h-full w-full items-center justify-center border-2 border-dashed rounded-xl bg-muted/30',
+            isOver && 'border-primary ring-2 ring-primary/20 bg-primary/5',
+          )}
+        >
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="gap-2">
@@ -60,8 +88,18 @@ export function WidgetSlot({ index }: { index: number }) {
   const shouldDim = isUpdating && !widgetConfig?.disableOpacityOnUpdate;
 
   return (
-    <div className="h-full w-full p-2">
-      <div className="flex flex-col h-full w-full p-4 border rounded-xl bg-card shadow-sm overflow-hidden relative">
+    <div
+      className="h-full w-full p-2"
+      onDragOver={handleDragOver}
+      onDragLeave={() => setIsOver(false)}
+      onDrop={handleDrop}
+    >
+      <div
+        className={cn(
+          'flex flex-col h-full w-full p-4 border rounded-xl bg-card shadow-sm overflow-hidden relative',
+          isOver && 'border-primary ring-2 ring-primary/20 bg-primary/5',
+        )}
+      >
         {/* Header Section */}
         <div className="flex justify-between items-center mb-4 shrink-0">
           <div className="flex items-center gap-2">
