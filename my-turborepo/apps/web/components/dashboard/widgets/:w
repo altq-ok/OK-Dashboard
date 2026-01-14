@@ -1,0 +1,153 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import { Area, AreaChart, CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+import { CalendarIcon } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { DateRange } from 'react-day-picker';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
+import { cn } from '@/lib/utils';
+
+export interface DataPoint {
+  date: string;
+  price1: number | null;
+  price2?: number | null;
+  volume: number | null;
+}
+
+// Explicit colors to ensure visibility in both Light/Dark themes
+const chartConfig = {
+  price1: { label: 'Price A', color: '#2563eb' }, // Vivid Blue
+  price2: { label: 'Price B', color: '#db2777' }, // Vivid Pink
+  volume: { label: 'Volume', color: '#71717a' }, // Zinc Gray
+} satisfies ChartConfig;
+
+export function MultiSeriesChart({ data }: { data: any[] }) {
+  const [range, setRange] = useState([0, data.length - 1]);
+
+  const filteredData = useMemo(() => {
+    return data.slice(range[0], range[1] + 1);
+  }, [range, data]);
+
+  const handleDateChange = (dateRange: DateRange | undefined) => {
+    if (dateRange?.from && dateRange?.to) {
+      const startIdx = data.findIndex((d) => new Date(d.date) >= dateRange.from!);
+      const endIdx = data.findIndex((d) => new Date(d.date) >= dateRange.to!);
+      setRange([startIdx === -1 ? 0 : startIdx, endIdx === -1 ? data.length - 1 : endIdx]);
+    }
+  };
+
+  return (
+    <Card className="w-full border-none shadow-md">
+      <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-6">
+        <div>
+          <CardTitle className="text-xl font-bold">Market Performance</CardTitle>
+          <p className="text-sm text-muted-foreground">Historical price and volume data</p>
+        </div>
+
+        {/* Date picker: Added min-width and better formatting */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="w-[280px] justify-start text-left font-medium">
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {filteredData.length > 0 ? (
+                <>
+                  {format(parseISO(filteredData[0].date), 'MMM dd, yyyy')} -{' '}
+                  {format(parseISO(filteredData[filteredData.length - 1].date), 'MMM dd, yyyy')}
+                </>
+              ) : (
+                'Select Range'
+              )}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              mode="range"
+              selected={{
+                from: parseISO(filteredData[0]?.date),
+                to: parseISO(filteredData[filteredData.length - 1]?.date),
+              }}
+              onSelect={handleDateChange}
+              numberOfMonths={2}
+            />
+          </PopoverContent>
+        </Popover>
+      </CardHeader>
+
+      <CardContent>
+        <ChartContainer config={chartConfig} className="h-[500px] w-full">
+          <div className="flex flex-col h-full gap-2">
+            {/* Price chart (top) */}
+            <div className="flex-[3]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={filteredData} syncId="marketSync">
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" strokeOpacity={0.2} />
+                  <XAxis dataKey="date" hide />
+                  <YAxis
+                    orientation="right"
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fontSize: 12, fill: 'currentColor' }}
+                    opacity={0.5}
+                  />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Line
+                    dataKey="price1"
+                    stroke={chartConfig.price1.color}
+                    strokeWidth={2.5}
+                    dot={false}
+                    connectNulls
+                    animationDuration={300}
+                  />
+                  <Line
+                    dataKey="price2"
+                    stroke={chartConfig.price2.color}
+                    strokeWidth={2.5}
+                    dot={false}
+                    connectNulls
+                    animationDuration={300}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Volume chart (bottom) */}
+            <div className="flex-[1] border-t pt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={filteredData} syncId="marketSync">
+                  <XAxis dataKey="date" hide />
+                  <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                  <Area
+                    type="step" // <--- This restores the "square" volume look
+                    dataKey="volume"
+                    fill={chartConfig.volume.color}
+                    fillOpacity={0.2}
+                    stroke={chartConfig.volume.color}
+                    strokeWidth={1}
+                    connectNulls
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Date range slider */}
+            <div className="pt-6 pb-2 px-2">
+              <Slider min={0} max={data.length - 1} step={1} value={range} onValueChange={setRange} className="my-4" />
+              <div className="flex justify-between text-[11px] font-mono text-muted-foreground">
+                <span>START: {data[range[0]]?.date}</span>
+                <span className="hidden sm:inline">DRAG TO ZOOM</span>
+                <span>END: {data[range[1]]?.date}</span>
+              </div>
+            </div>
+          </div>
+        </ChartContainer>
+      </CardContent>
+    </Card>
+  );
+}
