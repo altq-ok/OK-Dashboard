@@ -6,6 +6,7 @@ import { WidgetProps } from '@/lib/widget-registry';
 import { LoadingWidget } from './loading-widget';
 
 import { DataPoint, MultiSeriesChart } from './sample-performance-chart';
+import { GenericDataTable } from './generic-data-table';
 
 export const generateMockData = (days: number = 60): DataPoint[] => {
   const data: DataPoint[] = [];
@@ -43,6 +44,23 @@ export const generateMockData = (days: number = 60): DataPoint[] => {
   return data;
 };
 
+const tradeHistory = [
+  { id: '1', symbol: 'AAPL', price: 150.25, quantity: 10, status: 'completed' },
+  { id: '2', symbol: 'MSFT', price: 310.5, quantity: 5, status: 'pending' },
+];
+
+export function TradeHistoryWidget() {
+  return (
+    <div className="p-4">
+      <GenericDataTable
+        data={tradeHistory}
+        searchPlaceholder="銘柄名で検索..."
+        columnLabels={{ symbol: 'Ticker', price: 'Execution Price' }}
+      />
+    </div>
+  );
+}
+
 export function AnalyticsWidget({ targetId }: WidgetProps) {
   const { versions } = useDashboardParams();
   const { result: prices, isDataLoading } = useSnapshot(targetId, 'prices', versions.prices);
@@ -50,5 +68,6 @@ export function AnalyticsWidget({ targetId }: WidgetProps) {
   const data = generateMockData();
 
   // return <LoadingWidget message="TO BE IMPLEMENTED..." />;
-  return <MultiSeriesChart data={data} />;
+  // return <MultiSeriesChart data={data} />;
+  return <TradeHistoryWidget />;
 }
