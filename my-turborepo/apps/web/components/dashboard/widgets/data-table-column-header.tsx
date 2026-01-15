@@ -1,9 +1,9 @@
 // components/dashboard/data-table-column-header.tsx
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Column } from '@tanstack/react-table';
-import { ArrowUpDown, Filter, RotateCcw, Search } from 'lucide-react';
+import { ArrowUpDown, Filter, RotateCcw, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -23,21 +23,34 @@ export function DataTableColumnHeader<TData, TValue>({
   className,
 }: DataTableColumnHeaderProps<TData, TValue>) {
   const [searchTerm, setSearchTerm] = useState('');
-  const facetedUniqueValues = column.getFacetedUniqueValues();
 
+  const facetedUniqueValues = column.getFacetedUniqueValues();
   const allUniqueValues = useMemo(() => {
     return Array.from(facetedUniqueValues.keys()).sort();
   }, [facetedUniqueValues]);
 
-  const filteredUniqueValues = useMemo(() => {
+  const displayedValues = useMemo(() => {
     if (!searchTerm) return allUniqueValues;
     return allUniqueValues.filter((v) => String(v).toLowerCase().includes(searchTerm.toLowerCase()));
   }, [allUniqueValues, searchTerm]);
 
   const filterValue = column.getFilterValue() as string[] | undefined;
   const isFiltered = column.getIsFiltered();
-
   const isAllSelected = !isFiltered || filterValue === undefined;
+
+  // Reflect search to selection realtime
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    if (value.length > 0) {
+      const hits = allUniqueValues
+        .filter((v) => String(v).toLowerCase().includes(value.toLowerCase()))
+        .map((v) => String(v));
+
+      column.setFilterValue(hits.length === allUniqueValues.length ? undefined : hits);
+    } else {
+      column.setFilterValue(undefined);
+    }
+  };
 
   const toggleFilter = (value: string) => {
     const currentBase = isAllSelected ? allUniqueValues.map((v) => String(v)) : filterValue || [];
@@ -64,7 +77,11 @@ export function DataTableColumnHeader<TData, TValue>({
 
   return (
     <div className={cn('flex items-center space-x-2', className)}>
-      <Popover>
+      <Popover
+        onOpenChange={(open) => {
+          if (!open) setSearchTerm('');
+        }}
+      >
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
@@ -133,8 +150,17 @@ export function DataTableColumnHeader<TData, TValue>({
                   placeholder="Search values..."
                   className="h-7 text-xs pl-8 bg-muted/30 focus-visible:ring-1"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                 />
+                {searchTerm && (
+                  <Button
+                    variant="ghost"
+                    className="absolute right-3 top-1.5 h-5 w-5 p-0 hover:bg-transparent"
+                    onClick={() => handleSearchChange('')}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
 
               <ScrollArea className="h-[180px] px-1">
@@ -146,7 +172,7 @@ export function DataTableColumnHeader<TData, TValue>({
                     <Checkbox checked={isAllSelected} className="h-3.5 w-3.5" />
                     <span className="text-xs font-semibold">(Select All)</span>
                   </div>
-                  {filteredUniqueValues.map((value) => {
+                  {displayedValues.map((value) => {
                     const sValue = String(value);
                     const isChecked = isAllSelected || (filterValue || []).includes(sValue);
                     return (
