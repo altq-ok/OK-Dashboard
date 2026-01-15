@@ -1,8 +1,9 @@
 'use client';
 
-import { Calendar, Home, Inbox, Search, Settings, LayoutGrid } from 'lucide-react';
+import { Calendar, Home, Inbox, Search, Settings, LayoutGrid, RotateCcw, Target } from 'lucide-react';
 import {
   Sidebar,
+  SidebarHeader,
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
@@ -12,6 +13,8 @@ import {
   SidebarMenuButton,
   SidebarFooter,
 } from '@/components/ui/sidebar';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
 import { WIDGET_REGISTRY } from '@/lib/widget-registry';
 import { WidgetType } from '@/types/dashboard';
 
@@ -22,9 +25,49 @@ const navItems = [
   { title: 'Calendar', url: '#', icon: Calendar },
 ];
 
+let targetId = 'TEST';
+const setTargetId = (newTargetId: string) => {
+  targetId = newTargetId;
+};
+
 export function AppSidebar() {
   return (
     <Sidebar>
+      <TooltipProvider delayDuration={400}>
+        <SidebarHeader className="p-4">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between px-3 py-2 bg-primary/5 rounded-xl border border-primary/10 shadow-sm transition-all hover:bg-primary/10 group/card">
+              <div className="flex flex-col min-w-0">
+                <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest flex items-center gap-1">
+                  <Target className="h-2 w-2" /> Context
+                </span>
+                <span className="text-sm font-bold truncate text-foreground decoration-primary/30 underline-offset-4 group-hover/card:underline">
+                  {targetId === 'ALL' ? 'Market Overview' : targetId}
+                </span>
+              </div>
+              {targetId !== 'ALL' && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-lg hover:bg-background hover:shadow-sm transition-all active:scale-95 group/btn"
+                      onClick={() => setTargetId('ALL')}
+                    >
+                      <RotateCcw className="h-4 w-4 text-muted-foreground group-hover/btn:text-primary transition-transform group-hover/btn:-rotate-45" />
+                      <span className="sr-only">Reset to Global</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="bg-popover text-popover-foreground border shadow-md">
+                    <p className="text-xs font-medium">Reset context to ALL</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+          </div>
+        </SidebarHeader>
+      </TooltipProvider>
+
       <SidebarContent>
         {/* 1. 通常のナビゲーション */}
         <SidebarGroup>
